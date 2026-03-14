@@ -1,0 +1,135 @@
+{
+  "projectType": "saas",
+  "projectName": "Servineo",
+  "projectDescription": "A service marketplace platform connecting service requesters with professional service providers (fixers) for home and business services.",
+  "theme": "palm",
+  "primaryColor": "#1aa7ed",
+  "lightColor": "#2b6ae0",
+  "darkColor": "#0d5a8f",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "key-concepts"
+            ]
+          },
+          {
+            "group": "For Requesters",
+            "pages": [
+              "requesters/overview",
+              "requesters/finding-services",
+              "requesters/booking-appointments",
+              "requesters/payments",
+              "requesters/rating-reviews"
+            ]
+          },
+          {
+            "group": "For Fixers",
+            "pages": [
+              "fixers/overview",
+              "fixers/becoming-fixer",
+              "fixers/managing-jobs",
+              "fixers/calendar-scheduling",
+              "fixers/payments-wallet"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/authentication",
+              "features/search-filters",
+              "features/location-mapping",
+              "features/multi-language",
+              "features/notifications"
+            ]
+          },
+          {
+            "group": "Admin",
+            "pages": [
+              "admin/dashboard",
+              "admin/user-management",
+              "admin/statistics",
+              "admin/promotions"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/introduction",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Users",
+            "pages": [
+              "api/users/get-user",
+              "api/users/update-user",
+              "api/users/user-roles"
+            ]
+          },
+          {
+            "group": "Jobs & Services",
+            "pages": [
+              "api/jobs/get-jobs",
+              "api/jobs/create-job",
+              "api/jobs/get-fixers-by-job"
+            ]
+          },
+          {
+            "group": "Appointments",
+            "pages": [
+              "api/appointments/get-appointments",
+              "api/appointments/create-appointment",
+              "api/appointments/update-appointment"
+            ]
+          },
+          {
+            "group": "Payments",
+            "pages": [
+              "api/payments/payment-methods",
+              "api/payments/process-payment",
+              "api/payments/wallet"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Dual-role user system (requesters and fixers)",
+    "Advanced service search with location-based filtering",
+    "Integrated calendar and appointment scheduling",
+    "Multi-payment support (Stripe, QR, cash)",
+    "Real-time job offer management",
+    "Rating and review system",
+    "Multi-language support (English/Spanish)",
+    "Interactive maps with Leaflet",
+    "Admin dashboard with analytics"
+  ],
+  "publicApiSurface": [
+    "fixerService.getJobsWithFixers()",
+    "fixerService.getFixers()",
+    "fixerService.getFixerById(id)",
+    "fixerService.getFixersByJobType(jobType)",
+    "ApiClient.get(url)",
+    "ApiClient.post(url, body)",
+    "useAppointmentsDisable",
+    "useCalendarNavigation",
+    "useFixerData",
+    "useUserPermissions",
+    "Redux: userSlice",
+    "Redux: jobOffersSlice",
+    "Context: AppointmentsContext"
+  ]
+}
