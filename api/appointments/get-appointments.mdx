@@ -1,0 +1,519 @@
+---
+title: 'Get Appointments'
+description: 'Retrieve appointments from the system'
+api: 'GET /api/appointments'
+---
+
+## Get Appointments by Fixer
+
+Retrieve all appointments for a specific fixer.
+
+### Endpoint
+
+```
+GET /api/appointments/fixer/{fixerId}
+```
+
+### Path Parameters
+
+<ParamField path="fixerId" type="string" required>
+  The unique identifier of the fixer
+</ParamField>
+
+### Response
+
+Array of appointment objects.
+
+<ResponseField name="[].appointment" type="object">
+  Individual appointment object
+  
+  <Expandable title="Appointment Object">
+    <ResponseField name="_id" type="string">
+      Unique appointment identifier
+    </ResponseField>
+    
+    <ResponseField name="id_fixer" type="string">
+      Fixer's unique identifier
+    </ResponseField>
+    
+    <ResponseField name="id_requester" type="string">
+      Requester's unique identifier
+    </ResponseField>
+    
+    <ResponseField name="selected_date" type="object">
+      Selected appointment date in MongoDB format
+      ```json
+      { "$date": "2024-03-15T00:00:00.000Z" }
+      ```
+    </ResponseField>
+    
+    <ResponseField name="current_requester_name" type="string">
+      Name of the person requesting the service
+    </ResponseField>
+    
+    <ResponseField name="appointment_type" type="string">
+      Type of appointment/service
+    </ResponseField>
+    
+    <ResponseField name="appointment_description" type="string">
+      Detailed description of the work needed
+    </ResponseField>
+    
+    <ResponseField name="link_id" type="string">
+      Link identifier for related resources
+    </ResponseField>
+    
+    <ResponseField name="current_requester_phone" type="string">
+      Contact phone number of the requester
+    </ResponseField>
+    
+    <ResponseField name="starting_time" type="object">
+      Appointment start time
+      ```json
+      { "$date": "2024-03-15T09:00:00.000Z" }
+      ```
+    </ResponseField>
+    
+    <ResponseField name="finishing_time" type="object">
+      Appointment end time
+      ```json
+      { "$date": "2024-03-15T12:00:00.000Z" }
+      ```
+    </ResponseField>
+    
+    <ResponseField name="schedule_state" type="string">
+      Current state: `booked`, `cancelled`, `completed`, `in_progress`
+    </ResponseField>
+    
+    <ResponseField name="display_name_location" type="string">
+      Human-readable location name
+    </ResponseField>
+    
+    <ResponseField name="lat" type="string | null">
+      Latitude coordinate of the appointment location
+    </ResponseField>
+    
+    <ResponseField name="lon" type="string | null">
+      Longitude coordinate of the appointment location
+    </ResponseField>
+    
+    <ResponseField name="cancelled_fixer" type="boolean">
+      Whether the appointment was cancelled by the fixer
+    </ResponseField>
+    
+    <ResponseField name="reprogram_reason" type="string">
+      Reason for rescheduling (if applicable)
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="object">
+      Appointment creation timestamp
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="object">
+      Last update timestamp
+    </ResponseField>
+    
+    <ResponseField name="__v" type="number">
+      Version key for MongoDB
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/appointments/fixer/fixer123 \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { getAppointmentsByFixerId } from '@/services/appointments';
+
+const appointments = await getAppointmentsByFixerId('fixer123');
+console.log(`Found ${appointments.length} appointments`);
+```
+
+```javascript JavaScript
+const fixerId = 'fixer123';
+
+const response = await fetch(
+  `https://api.servineo.com/api/appointments/fixer/${fixerId}`,
+  {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    cache: 'no-store'
+  }
+);
+
+const appointments = await response.json();
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+[
+  {
+    "_id": "appt123",
+    "id_fixer": "fixer123",
+    "id_requester": "requester456",
+    "selected_date": {
+      "$date": "2024-03-15T00:00:00.000Z"
+    },
+    "current_requester_name": "Pedro Martínez",
+    "appointment_type": "plomeria",
+    "appointment_description": "Reparación de fuga en cocina",
+    "link_id": "link789",
+    "current_requester_phone": "+595981234567",
+    "starting_time": {
+      "$date": "2024-03-15T09:00:00.000Z"
+    },
+    "finishing_time": {
+      "$date": "2024-03-15T12:00:00.000Z"
+    },
+    "schedule_state": "booked",
+    "display_name_location": "Av. Mariscal López 123, Asunción",
+    "lat": "-25.2637",
+    "lon": "-57.5759",
+    "cancelled_fixer": false,
+    "reprogram_reason": "",
+    "createdAt": {
+      "$date": "2024-03-10T15:30:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2024-03-10T15:30:00.000Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": "appt456",
+    "id_fixer": "fixer123",
+    "id_requester": "requester789",
+    "selected_date": {
+      "$date": "2024-03-16T00:00:00.000Z"
+    },
+    "current_requester_name": "Ana Silva",
+    "appointment_type": "plomeria",
+    "appointment_description": "Instalación de grifo nuevo",
+    "link_id": "link012",
+    "current_requester_phone": "+595981234568",
+    "starting_time": {
+      "$date": "2024-03-16T14:00:00.000Z"
+    },
+    "finishing_time": {
+      "$date": "2024-03-16T16:00:00.000Z"
+    },
+    "schedule_state": "booked",
+    "display_name_location": "Av. Eusebio Ayala 456, Asunción",
+    "lat": "-25.2700",
+    "lon": "-57.5800",
+    "cancelled_fixer": false,
+    "reprogram_reason": "",
+    "createdAt": {
+      "$date": "2024-03-11T10:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2024-03-11T10:00:00.000Z"
+    },
+    "__v": 0
+  }
+]
+```
+
+---
+
+## Get Map Locations (Admin)
+
+Retrieve all appointment locations for map visualization (admin only).
+
+### Endpoint
+
+```
+GET /api/admin/map-locations
+```
+
+### Authorization
+
+<Warning>
+  This endpoint requires admin authentication.
+</Warning>
+
+### Response
+
+<ResponseField name="[].location" type="object">
+  Map location object
+  
+  <Expandable title="Location Properties">
+    <ResponseField name="_id" type="string">
+      Appointment ID
+    </ResponseField>
+    
+    <ResponseField name="lat" type="string">
+      Latitude coordinate
+    </ResponseField>
+    
+    <ResponseField name="lon" type="string">
+      Longitude coordinate
+    </ResponseField>
+    
+    <ResponseField name="schedule_state" type="string">
+      State: `booked` or `cancelled`
+    </ResponseField>
+    
+    <ResponseField name="fixerName" type="string">
+      Name of the assigned fixer
+    </ResponseField>
+    
+    <ResponseField name="current_requester_name" type="string">
+      Name of the requester
+    </ResponseField>
+    
+    <ResponseField name="starting_time" type="string">
+      ISO 8601 formatted start time
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/admin/map-locations \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { useGetMapLocationsQuery } from '@/app/redux/services/trackingAppointmentsApi';
+
+const { data: locations, isLoading } = useGetMapLocationsQuery();
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+[
+  {
+    "_id": "appt123",
+    "lat": "-25.2637",
+    "lon": "-57.5759",
+    "schedule_state": "booked",
+    "fixerName": "Juan Pérez",
+    "current_requester_name": "Pedro Martínez",
+    "starting_time": "2024-03-15T09:00:00.000Z"
+  },
+  {
+    "_id": "appt456",
+    "lat": "-25.2700",
+    "lon": "-57.5800",
+    "schedule_state": "booked",
+    "fixerName": "Juan Pérez",
+    "current_requester_name": "Ana Silva",
+    "starting_time": "2024-03-16T14:00:00.000Z"
+  }
+]
+```
+
+---
+
+## Get Tracking Metrics (Admin)
+
+Retrieve appointment statistics and metrics.
+
+### Endpoint
+
+```
+GET /api/admin/metrics
+```
+
+### Query Parameters
+
+<ParamField query="startDate" type="string">
+  Filter start date (ISO 8601 format)
+</ParamField>
+
+<ParamField query="endDate" type="string">
+  Filter end date (ISO 8601 format)
+</ParamField>
+
+### Response
+
+<ResponseField name="total" type="number">
+  Total number of appointments
+</ResponseField>
+
+<ResponseField name="active" type="number">
+  Number of active/booked appointments
+</ResponseField>
+
+<ResponseField name="cancelled" type="number">
+  Number of cancelled appointments
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.servineo.com/api/admin/metrics?startDate=2024-03-01&endDate=2024-03-31" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { useGetTrackingMetricsQuery } from '@/app/redux/services/trackingAppointmentsApi';
+
+const { data: metrics } = useGetTrackingMetricsQuery({
+  startDate: '2024-03-01',
+  endDate: '2024-03-31'
+});
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "total": 150,
+  "active": 120,
+  "cancelled": 30
+}
+```
+
+---
+
+## Get Fixer Statistics (Admin)
+
+Retrieve performance statistics for all fixers.
+
+### Endpoint
+
+```
+GET /api/admin/fixer-stats
+```
+
+### Response
+
+Array of fixer statistics.
+
+<ResponseField name="[].stat" type="object">
+  Fixer statistics object
+  
+  <Expandable title="Statistics Properties">
+    <ResponseField name="id" type="string">
+      Fixer ID
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Fixer name
+    </ResponseField>
+    
+    <ResponseField name="total" type="number">
+      Total appointments
+    </ResponseField>
+    
+    <ResponseField name="active" type="number">
+      Active appointments
+    </ResponseField>
+    
+    <ResponseField name="cancelled" type="number">
+      Cancelled appointments
+    </ResponseField>
+    
+    <ResponseField name="rescheduled" type="number">
+      Rescheduled appointments
+    </ResponseField>
+    
+    <ResponseField name="rate" type="string">
+      Success rate percentage
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/admin/fixer-stats \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { useGetFixerStatsQuery } from '@/app/redux/services/trackingAppointmentsApi';
+
+const { data: stats, isLoading } = useGetFixerStatsQuery();
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+[
+  {
+    "id": "fixer123",
+    "name": "Juan Pérez",
+    "total": 50,
+    "active": 40,
+    "cancelled": 5,
+    "rescheduled": 5,
+    "rate": "90%"
+  },
+  {
+    "id": "fixer456",
+    "name": "María González",
+    "total": 45,
+    "active": 42,
+    "cancelled": 2,
+    "rescheduled": 1,
+    "rate": "95%"
+  }
+]
+```
+
+## Appointment States
+
+Possible values for `schedule_state`:
+
+| State | Description |
+|-------|-------------|
+| `booked` | Appointment is confirmed and scheduled |
+| `cancelled` | Appointment has been cancelled |
+| `completed` | Service has been completed |
+| `in_progress` | Fixer is currently working on the job |
+
+## Error Responses
+
+### No Appointments Found (404)
+
+```json
+{
+  "success": false,
+  "error": "No appointments found for fixer"
+}
+```
+
+### Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "error": "Unauthorized - Admin access required"
+}
+```
+
+## Related Endpoints
+
+- [Create Appointment](/api/appointments/create-appointment)
+- [Update Appointment](/api/appointments/update-appointment)

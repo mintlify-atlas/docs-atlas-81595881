@@ -1,0 +1,347 @@
+---
+title: 'Becoming a Fixer'
+description: 'Complete guide to registering and setting up your fixer profile'
+icon: 'user-plus'
+---
+
+## Registration Process
+
+To become a fixer on Servineo, you must complete a multi-step registration wizard that collects your professional information and verifies your credentials.
+
+<Note>
+You must be logged in as a regular user before starting the fixer registration process.
+</Note>
+
+## Access the Registration
+
+Navigate to the `/become-fixer` page in your application:
+
+```typescript
+// Location: src/app/[locale]/become-fixer/page.tsx:15-29
+export default function BecomeFixerPage() {
+  const { user: reduxUser } = useAppSelector((state) => state.user);
+  
+  // Redirect if user is already a fixer
+  useEffect(() => {
+    if (reduxUser?.role === 'fixer') {
+      router.push('/fixer/dashboard');
+    }
+  }, [reduxUser, router]);
+  
+  // ...
+}
+```
+
+<Warning>
+If you're already registered as a fixer, you'll be automatically redirected to your dashboard.
+</Warning>
+
+## Step-by-Step Registration
+
+The registration process consists of 7 steps:
+
+<Steps>
+  <Step title="Profile Photo" number="1">
+    Upload or update your profile photo. This helps customers recognize and trust you.
+    
+    ```typescript
+    // Location: src/Components/fixer/Filter-eneable-wizard.tsx:307-312
+    {step === 0 && (
+      <ProfilePhotoStep
+        photoUrl={url_photo}
+        onPhotoChange={(url) => setValue('url_photo', url, { shouldValidate: true })}
+        error={errors.url_photo?.message}
+      />
+    )}
+    ```
+    
+    <Tip>
+    Use a clear, professional photo that shows your face clearly.
+    </Tip>
+  </Step>
+  
+  <Step title="Identity Verification (CI)" number="2">
+    Provide your national ID number (Cédula de Identidad) for verification.
+    
+    ```typescript
+    // Location: src/Components/fixer/Filter-eneable-wizard.tsx:315-320
+    {step === 1 && (
+      <CIStep
+        ci={ci}
+        onCIChange={(val) => setValue('ci', val, { shouldValidate: true })}
+        error={errors.ci?.message}
+      />
+    )}
+    ```
+    
+    <Warning>
+    Your CI information is used for identity verification and must be accurate.
+    </Warning>
+  </Step>
+  
+  <Step title="Work Location" number="3">
+    Set your primary work location using an interactive map.
+    
+    ```typescript
+    // Location: src/Components/fixer/Filter-eneable-wizard.tsx:322-327
+    {step === 2 && (
+      <LocationStep
+        location={workLocation}
+        onLocationChange={(val) => setValue('workLocation', val, { shouldValidate: true })}
+        error={errors.workLocation?.message || errors.workLocation?.lat?.message}
+      />
+    )}
+    ```
+    
+    The location includes:
+    - **Latitude**: Geographic coordinate
+    - **Longitude**: Geographic coordinate  
+    - **Address**: Human-readable location
+  </Step>
+  
+  <Step title="Services Offered" number="4">
+    Select the services you provide. You can choose from predefined categories or add custom services.
+    
+    **Default Services:**
+    ```typescript
+    // Location: src/Components/fixer/Filter-eneable-wizard.tsx:25-30
+    const DEFAULT_SERVICES: Service[] = [
+      { id: 'svc-plumbing', name: 'Plomería' },
+      { id: 'svc-electric', name: 'Electricidad' },
+      { id: 'svc-carpentry', name: 'Carpintería' },
+      { id: 'svc-paint', name: 'Pintura' },
+    ];
+    ```
+    
+    **Adding Custom Services:**
+    ```typescript
+    // Location: src/Components/fixer/steps/Services-step.tsx:42-60
+    const handleAddService = () => {
+      if (!newService.trim()) {
+        alert('Por favor ingresa un nombre para el servicio');
+        return;
+      }
+      
+      if (newService.trim().length < 2) {
+        alert('El servicio debe tener al menos 2 caracteres');
+        return;
+      }
+      
+      onAddCustomService(newService.trim());
+      setNewService('');
+    };
+    ```
+    
+    <Note>
+    Custom service names must be 2-20 characters and contain only letters.
+    </Note>
+  </Step>
+  
+  <Step title="Payment Methods" number="5">
+    Select which payment methods you accept from customers.
+    
+    **Available Payment Methods:**
+    ```typescript
+    // Location: src/Components/fixer/steps/Payment-step.tsx:19-23
+    const PAYMENT_CONFIG: Record<PaymentMethod, { label: string; icon: React.ReactNode }> = {
+      cash: { label: 'Efectivo', icon: <Banknote className='h-4 w-4' /> },
+      qr: { label: 'QR', icon: <QrCode className='h-4 w-4' /> },
+      card: { label: 'Tarjeta', icon: <CreditCard className='h-4 w-4' /> },
+    };
+    ```
+    
+    **Account Information:**
+    If you select QR or Card payments, you must provide your account number:
+    
+    ```typescript
+    // Location: src/Components/fixer/steps/Payment-step.tsx:33-48
+    const needsAccount = payments.includes('qr') || payments.includes('card');
+    
+    const handleAccountChange = (value: string) => {
+      // Only allow numbers, max 34 characters (CBU/IBAN)
+      const numericOnly = value.replace(/\D/g, '').slice(0, 34);
+      onAccountInfoChange(numericOnly);
+    };
+    
+    const getAccountType = () => {
+      const length = accountInfo.length;
+      if (length === 22) return 'CBU';
+      if (length === 24) return 'IBAN';
+      return '';
+    };
+    ```
+    
+    <Tip>
+    Valid account numbers are 22 digits (CBU) or 24 digits (IBAN).
+    </Tip>
+  </Step>
+  
+  <Step title="Vehicle Information" number="6">
+    Indicate if you have your own vehicle and what type.
+    
+    This helps customers understand if you can:
+    - Transport tools and materials
+    - Travel to distant locations
+    - Handle larger projects
+    
+    <Note>
+    Having a vehicle is optional but may increase your job opportunities.
+    </Note>
+  </Step>
+  
+  <Step title="Terms & Conditions" number="7">
+    Review and accept the terms of service for fixers.
+    
+    ```typescript
+    // Location: src/Components/fixer/Filter-eneable-wizard.tsx:407-415
+    <PillButton
+      type='submit'
+      disabled={isSubmitting || !acceptTerms}
+      className='bg-primary text-white hover:bg-blue-800 disabled:opacity-50'
+    >
+      {isSubmitting ? 'Registrando...' : 'Registrar'}
+      <CheckCircle2 className='h-4 w-4' />
+    </PillButton>
+    ```
+    
+    <Warning>
+    You must accept the terms and conditions to complete registration.
+    </Warning>
+  </Step>
+</Steps>
+
+## Step Validation
+
+Each step is validated before you can proceed:
+
+```typescript
+// Location: src/Components/fixer/Filter-eneable-wizard.tsx:116-145
+const validateStep = async () => {
+  let fieldsToValidate: (keyof FixerProfileData)[] = [];
+  
+  switch (step) {
+    case 0:
+      fieldsToValidate = ['url_photo'];
+      break;
+    case 1:
+      fieldsToValidate = ['ci'];
+      break;
+    case 2:
+      fieldsToValidate = ['workLocation'];
+      break;
+    case 3:
+      fieldsToValidate = ['servicios'];
+      break;
+    case 4:
+      fieldsToValidate = ['metodoPago', 'accountInfo'];
+      break;
+    case 5:
+      fieldsToValidate = ['vehiculo'];
+      break;
+    case 6:
+      fieldsToValidate = ['acceptTerms'];
+      break;
+  }
+  
+  const isValid = await trigger(fieldsToValidate);
+  return isValid;
+};
+```
+
+## Submitting Your Registration
+
+When you complete all steps and submit:
+
+```typescript
+// Location: src/Components/fixer/Filter-eneable-wizard.tsx:202-256
+const onSubmit: SubmitHandler<FixerProfileData> = async (data) => {
+  try {
+    const payload = {
+      id: user._id?.toString(),
+      profile: {
+        telefono: user.telefono,
+        ci: data.ci.trim(),
+        services: data.servicios
+          .filter((id): id is string => id.startsWith('svc-'))
+          .map((id) => {
+            const service = DEFAULT_SERVICES.find((s) => s.id === id);
+            return { name: service?.name ?? 'Servicio desconocido' };
+          }),
+        vehicle: data.vehiculo.hasVehiculo
+          ? {
+              hasVehiculo: true,
+              tipoVehiculo: data.vehiculo.tipoVehiculo || undefined,
+            }
+          : { hasVehiculo: false },
+        paymentMethods: (() => {
+          const methods: { type: string }[] = [];
+          if (data.metodoPago.hasEfectivo) methods.push({ type: 'efectivo' });
+          if (data.metodoPago.qr) methods.push({ type: 'qr' });
+          if (data.metodoPago.tarjetaCredito) methods.push({ type: 'tarjeta' });
+          return methods;
+        })(),
+        location: {
+          lat: Number(data.workLocation.lat),
+          lng: Number(data.workLocation.lng),
+          direccion: data.workLocation.direccion?.trim() || '',
+        },
+        terms: {
+          accepted: data.acceptTerms,
+        },
+      },
+    };
+    
+    await convertToFixer(payload).unwrap();
+    setSuccess(true);
+  } catch (error) {
+    // Error handling...
+  }
+};
+```
+
+## Registration Success
+
+After successful registration:
+
+<Steps>
+  <Step title="Account Status">
+    Your account will be set to "pending" status for review
+  </Step>
+  
+  <Step title="Verification">
+    The Servineo team will verify your information
+  </Step>
+  
+  <Step title="Activation">
+    Once approved, you can start receiving job requests
+  </Step>
+</Steps>
+
+<Note>
+The review process typically takes 1-3 business days. You'll receive a notification when your account is approved.
+</Note>
+
+## Initial Form Data
+
+If you're already logged in, your basic information will be pre-filled:
+
+```typescript
+// Location: src/app/[locale]/become-fixer/page.tsx:51-56
+const defaultValues = {
+  name: reduxUser?.name || '',
+  email: reduxUser?.email || '',
+  phone: reduxUser?.telefono || '',
+};
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Dashboard Overview" icon="gauge" href="/fixers/overview">
+    Learn about fixer capabilities and the dashboard
+  </Card>
+  
+  <Card title="Create Job Offers" icon="briefcase" href="/fixers/managing-jobs">
+    Start creating your service offerings
+  </Card>
+</CardGroup>

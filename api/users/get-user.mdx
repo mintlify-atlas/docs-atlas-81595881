@@ -1,0 +1,247 @@
+---
+title: 'Get User'
+description: 'Retrieve user details by ID'
+api: 'GET /api/user/{id}'
+---
+
+## Overview
+
+Retrieve detailed information about a specific user by their ID.
+
+## Endpoint
+
+```
+GET /api/user/{id}
+```
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The unique identifier of the user
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  The user object
+  
+  <Expandable title="User Object">
+    <ResponseField name="_id" type="string">
+      User's unique identifier
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      User's full name
+    </ResponseField>
+    
+    <ResponseField name="email" type="string">
+      User's email address
+    </ResponseField>
+    
+    <ResponseField name="role" type="string">
+      User role: `requester`, `fixer`, or `admin`
+    </ResponseField>
+    
+    <ResponseField name="url_photo" type="string">
+      URL to user's profile photo
+    </ResponseField>
+    
+    <ResponseField name="telefono" type="string">
+      User's phone number
+    </ResponseField>
+    
+    <ResponseField name="ubicacion" type="object">
+      User's location information
+      
+      <Expandable title="Location Details">
+        <ResponseField name="lat" type="number">
+          Latitude coordinate
+        </ResponseField>
+        
+        <ResponseField name="lng" type="number">
+          Longitude coordinate
+        </ResponseField>
+        
+        <ResponseField name="direccion" type="string">
+          Street address
+        </ResponseField>
+        
+        <ResponseField name="departamento" type="string">
+          Department/state
+        </ResponseField>
+        
+        <ResponseField name="pais" type="string">
+          Country
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="workLocation" type="object">
+      Fixer's work location (for fixers only)
+      
+      <Expandable title="Work Location Details">
+        <ResponseField name="lat" type="number">
+          Latitude coordinate
+        </ResponseField>
+        
+        <ResponseField name="lng" type="number">
+          Longitude coordinate
+        </ResponseField>
+        
+        <ResponseField name="direccion" type="string">
+          Work address
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="servicios" type="array">
+      Array of service IDs the fixer provides
+    </ResponseField>
+    
+    <ResponseField name="vehiculo" type="object">
+      Vehicle information
+      
+      <Expandable title="Vehicle Details">
+        <ResponseField name="hasVehiculo" type="boolean">
+          Whether the user has a vehicle
+        </ResponseField>
+        
+        <ResponseField name="tipoVehiculo" type="string">
+          Type of vehicle
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="metodoPago" type="object">
+      Accepted payment methods
+      
+      <Expandable title="Payment Methods">
+        <ResponseField name="hasEfectivo" type="boolean">
+          Accepts cash
+        </ResponseField>
+        
+        <ResponseField name="qr" type="boolean">
+          Accepts QR code payments
+        </ResponseField>
+        
+        <ResponseField name="tarjetaCredito" type="boolean">
+          Accepts credit cards
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      User's bio or description
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      Account creation timestamp
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string">
+      Last update timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/user/user123 \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { userApi } from '@/app/redux/services/userApi';
+
+// Using RTK Query hook
+const { data, isLoading, error } = useGetUserByIdQuery('user123');
+
+// Or using lazy query
+const [getUser] = useLazyGetUserByIdQuery();
+const result = await getUser('user123');
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.servineo.com/api/user/user123', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+```
+
+</CodeGroup>
+
+## Example Response
+
+```json
+{
+  "_id": "user123",
+  "name": "Juan Pérez",
+  "email": "juan.perez@example.com",
+  "role": "fixer",
+  "url_photo": "https://example.com/photos/juan.jpg",
+  "telefono": "+595981234567",
+  "ubicacion": {
+    "lat": -25.2637,
+    "lng": -57.5759,
+    "direccion": "Av. Mariscal López 123",
+    "departamento": "Central",
+    "pais": "Paraguay"
+  },
+  "workLocation": {
+    "lat": -25.2637,
+    "lng": -57.5759,
+    "direccion": "Zona de trabajo principal"
+  },
+  "servicios": ["plomeria", "electricidad"],
+  "vehiculo": {
+    "hasVehiculo": true,
+    "tipoVehiculo": "moto"
+  },
+  "metodoPago": {
+    "hasEfectivo": true,
+    "qr": true,
+    "tarjetaCredito": false
+  },
+  "description": "Plomero y electricista con 10 años de experiencia",
+  "createdAt": "2024-01-15T10:30:00.000Z",
+  "updatedAt": "2024-03-14T15:45:00.000Z"
+}
+```
+
+## Error Responses
+
+### User Not Found (404)
+
+```json
+{
+  "success": false,
+  "error": "User not found"
+}
+```
+
+### Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "error": "Unauthorized - Authentication required"
+}
+```
+
+## Related Endpoints
+
+- [Update User](/api/users/update-user)
+- [User Roles](/api/users/user-roles)

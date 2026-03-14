@@ -1,97 +1,126 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Welcome to Servineo"
+description: "A service marketplace platform connecting service requesters with professional service providers for home and business services"
 ---
 
-## Setting up
+## What is Servineo?
 
-Get your documentation site up and running in minutes.
+Servineo is a comprehensive service marketplace platform built with Next.js that connects service requesters (customers) with skilled service providers (fixers). Whether you need a plumber, electrician, cleaner, or any other professional service, Servineo makes it easy to find, book, and pay for services in your area.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
+    title="Get Started"
+    icon="rocket"
+    href="/quickstart"
   >
-    Edit your docs locally and preview them in real time.
+    Start using Servineo in minutes
   </Card>
   <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
+    title="Key Concepts"
+    icon="lightbulb"
+    href="/key-concepts"
   >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+    Understand how Servineo works
   </Card>
   <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
+    title="For Requesters"
+    icon="user"
+    href="/requesters/overview"
   >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+    Find and book services
   </Card>
   <Card
-    title="Code samples"
+    title="For Fixers"
+    icon="wrench"
+    href="/fixers/overview"
+  >
+    Offer your services and manage jobs
+  </Card>
+</CardGroup>
+
+## Key Features
+
+Servineo provides a complete platform for service marketplace operations with powerful features for both requesters and fixers.
+
+<CardGroup cols={2}>
+  <Card
+    title="Advanced Search & Filters"
+    icon="magnifying-glass"
+    href="/features/search-filters"
+  >
+    Find the perfect service provider with location-based search and advanced filtering
+  </Card>
+  <Card
+    title="Calendar & Scheduling"
+    icon="calendar"
+    href="/fixers/calendar-scheduling"
+  >
+    Manage appointments with an integrated calendar system
+  </Card>
+  <Card
+    title="Multi-Payment Support"
+    icon="credit-card"
+    href="/requesters/payments"
+  >
+    Accept payments via Stripe, QR codes, or cash
+  </Card>
+  <Card
+    title="Location Mapping"
+    icon="map-location-dot"
+    href="/features/location-mapping"
+  >
+    Interactive maps powered by Leaflet for location-based services
+  </Card>
+  <Card
+    title="Rating & Reviews"
+    icon="star"
+    href="/requesters/rating-reviews"
+  >
+    Build trust with comprehensive rating and review system
+  </Card>
+  <Card
+    title="Multi-Language"
+    icon="language"
+    href="/features/multi-language"
+  >
+    Support for English and Spanish with next-intl
+  </Card>
+</CardGroup>
+
+## Quick Links
+
+<CardGroup cols={3}>
+  <Card
+    title="Authentication"
+    icon="lock"
+    href="/features/authentication"
+  >
+    OAuth and multi-provider auth
+  </Card>
+  <Card
+    title="Admin Dashboard"
+    icon="chart-line"
+    href="/admin/dashboard"
+  >
+    Manage your platform
+  </Card>
+  <Card
+    title="API Reference"
     icon="code"
-    href="/essentials/code"
+    href="/api/introduction"
   >
-    Add sample code to demonstrate how to use your product.
+    Integrate with Servineo
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+</CardGroup>
 
-## Need inspiration?
+## Technology Stack
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+Servineo is built with modern technologies:
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **State Management**: Redux Toolkit with Redux Logger
+- **Styling**: Tailwind CSS, Material-UI, Framer Motion
+- **Maps**: Leaflet and React Leaflet
+- **Payments**: Stripe integration
+- **Internationalization**: next-intl for multi-language support
+- **Calendar**: React Big Calendar for scheduling

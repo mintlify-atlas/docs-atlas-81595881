@@ -1,0 +1,236 @@
+---
+title: 'Admin Dashboard'
+description: 'Overview of the Servineo admin dashboard and its key features'
+icon: 'gauge'
+---
+
+## Overview
+
+The Servineo admin dashboard provides a centralized interface for monitoring and managing the platform. It displays real-time user statistics, role distribution, and access to advanced administrative modules.
+
+<Note>
+  Admin access requires authentication via email/password or Google OAuth. Only authorized administrators can access the dashboard.
+</Note>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="User Statistics" icon="users">
+    View real-time metrics of total users and distribution by role (Requesters, Fixers, Visitors, Admins)
+  </Card>
+  <Card title="Session Analytics" icon="chart-line">
+    Track session starts and ends with customizable date ranges
+  </Card>
+  <Card title="Advanced Modules" icon="grid">
+    Quick access to specialized admin tools like Statistics and Appointment Tracking
+  </Card>
+  <Card title="Auto-Refresh" icon="arrows-rotate">
+    Real-time data updates with manual refresh capability
+  </Card>
+</CardGroup>
+
+## Authentication
+
+The admin panel supports two authentication methods:
+
+<Steps>
+  <Step title="Email/Password Login">
+    Traditional authentication using admin credentials:
+    
+    ```typescript
+    const handleLogin = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const data = await adminAPI.login({ email, password });
+      
+      if (data.success) {
+        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('adminUser', JSON.stringify(data.user));
+        router.push(`/${locale}/user-admin/dashboard`);
+      }
+    };
+    ```
+  </Step>
+  
+  <Step title="Google OAuth">
+    Single sign-on with Google accounts:
+    
+    ```typescript
+    const handleGoogleLogin = async () => {
+      const client = google?.accounts?.oauth2?.initTokenClient;
+      
+      client({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+        scope: 'email profile',
+        callback: async (response: GoogleTokenResponse) => {
+          const data = await adminAPI.loginWithGoogle(response.credential);
+          // Store token and redirect
+        },
+      }).requestAccessToken();
+    };
+    ```
+  </Step>
+  
+  <Step title="Token Verification">
+    All dashboard requests verify the admin token:
+    
+    ```typescript
+    const authCheck = await adminAPI.verifyToken(token);
+    if (!authCheck.valid) {
+      // Redirect to login
+      router.push('/es/user-admin');
+    }
+    ```
+  </Step>
+</Steps>
+
+## Dashboard Components
+
+### User Statistics Panel
+
+The main statistics panel displays comprehensive user data:
+
+```typescript
+interface UserStatsData {
+  totalUsers: number;
+  usersByRole: {
+    requester: number;
+    fixer: number;
+    visitor: number;
+    admin: number;
+  };
+  timestamp: string;
+  note?: string;
+  source?: string;
+}
+```
+
+<Warning>
+  If the API connection fails, the dashboard displays cached data with a notification indicating "Datos de respaldo (error de conexión)"
+</Warning>
+
+### Real-Time Updates
+
+Refresh statistics manually with the update button:
+
+```typescript
+const handleRefreshStats = async () => {
+  const token = localStorage.getItem('adminToken');
+  setStatsLoading(true);
+  
+  try {
+    const statsResponse = await adminAPI.getUserStats(token);
+    if (statsResponse.success && statsResponse.data) {
+      setUserStats(statsResponse.data);
+      setLastUpdated(new Date(statsResponse.data.timestamp).toLocaleTimeString());
+    }
+  } finally {
+    setStatsLoading(false);
+  }
+};
+```
+
+### Role Distribution Cards
+
+Each user role is displayed in a dedicated card showing:
+- **Count**: Number of users with that role
+- **Percentage**: Proportion of total users
+- **Visual indicator**: Color-coded by role type
+
+```tsx
+<div className="roleCard fixerCard">
+  <div className="roleHeader">
+    <span className="roleIcon">🛠️</span>
+    <span className="roleName">Fixers</span>
+  </div>
+  <div className="roleCount">
+    {userStats?.usersByRole?.fixer || 0}
+  </div>
+  <div className="rolePercentage">
+    {Math.round(((userStats.usersByRole?.fixer || 0) / userStats.totalUsers) * 100)}%
+  </div>
+</div>
+```
+
+## External Modules
+
+The dashboard provides quick navigation to specialized modules:
+
+<CardGroup cols={2}>
+  <Card title="Advanced Statistics" icon="chart-mixed" href="/admin/statistics">
+    Access detailed analytics, charts, and filter-based statistics
+  </Card>
+  <Card title="Appointment Tracking" icon="location-dot" href="#">
+    Monitor active appointments and fixer locations in real-time
+  </Card>
+</CardGroup>
+
+```tsx
+<button
+  onClick={() => window.open('https://servineo.app/es/adminStatistic', '_self')}
+  className={styles.moduleButton}
+>
+  <div className={styles.moduleIcon}>📊</div>
+  <div className={styles.moduleContent}>
+    <h4>Estadísticas Avanzadas</h4>
+    <p>Métricas detalladas y análisis del sistema</p>
+  </div>
+</button>
+```
+
+## API Reference
+
+Key API endpoints used by the dashboard:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/admin/login` | POST | Email/password authentication |
+| `/api/admin/login/google` | POST | Google OAuth authentication |
+| `/api/admin/verify` | GET | Verify admin token validity |
+| `/api/admin/user-stats` | GET | Fetch user statistics |
+| `/api/admin/chart/session/start` | GET | Session start data |
+| `/api/admin/chart/session/end` | GET | Session end data |
+
+## Session Analytics
+
+View session start/end charts with date filtering:
+
+```typescript
+const loadCharts = async () => {
+  const token = localStorage.getItem('adminToken');
+  
+  const [startData, endData] = await Promise.all([
+    adminAPI.getSessionStartChart(token, dateRange.start, dateRange.end),
+    adminAPI.getSessionEndChart(token, dateRange.start, dateRange.end),
+  ]);
+  
+  if (startData.success) setStartChartData(startData.data);
+  if (endData.success) setEndChartData(endData.data);
+};
+```
+
+<Note>
+  Chart data supports hourly and daily aggregation. Use the date range picker to filter specific time periods.
+</Note>
+
+## Security Considerations
+
+<Warning>
+  - Admin tokens are stored in localStorage
+  - All API requests include `Authorization: Bearer <token>` header
+  - Tokens are verified on each dashboard load
+  - Invalid tokens trigger automatic logout and redirect
+</Warning>
+
+## Related Pages
+
+<CardGroup cols={3}>
+  <Card title="User Management" icon="users-gear" href="/admin/user-management">
+    Manage requesters and fixers
+  </Card>
+  <Card title="Statistics" icon="chart-bar" href="/admin/statistics">
+    Advanced analytics and reports
+  </Card>
+  <Card title="Promotions" icon="badge-percent" href="/admin/promotions">
+    Manage promotional offers
+  </Card>
+</CardGroup>

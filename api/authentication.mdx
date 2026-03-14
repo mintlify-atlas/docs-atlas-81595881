@@ -1,0 +1,255 @@
+---
+title: 'Authentication'
+description: 'Learn how to authenticate with the Servineo API'
+icon: 'key'
+---
+
+## Authentication Methods
+
+The Servineo API supports multiple authentication methods to secure access to protected resources.
+
+## Bearer Token Authentication
+
+Most API endpoints require authentication using Bearer tokens. Include the token in the `Authorization` header:
+
+```http
+Authorization: Bearer YOUR_ACCESS_TOKEN
+```
+
+### Example Request
+
+```bash
+curl https://api.servineo.com/api/user/123 \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+## Cookie-Based Authentication
+
+The API also supports cookie-based authentication for web applications:
+
+```typescript
+fetch('/api/endpoint', {
+  credentials: 'include',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+```
+
+<Note>
+  The base API is configured with `credentials: 'include'` to automatically send cookies with requests.
+</Note>
+
+## OAuth Providers
+
+Servineo supports authentication through multiple OAuth providers:
+
+<CardGroup cols={2}>
+  <Card title="Google" icon="google">
+    Sign in with Google OAuth
+  </Card>
+  <Card title="Custom" icon="user">
+    Email/password authentication
+  </Card>
+</CardGroup>
+
+### User Authentication Providers
+
+Users can have multiple authentication providers:
+
+```typescript
+interface IUser {
+  authProviders?: Array<{
+    provider: string;      // e.g., 'google', 'email'
+    providerId: string;    // Unique ID from provider
+    password?: string;     // For email/password auth
+  }>;
+}
+```
+
+## Login Request
+
+### Endpoint
+
+```
+POST /api/auth/login
+```
+
+### Request Body
+
+```json
+{
+  "email": "user@example.com",
+  "password": "your-password"
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "_id": "user123",
+      "name": "John Doe",
+      "email": "user@example.com",
+      "role": "fixer"
+    }
+  }
+}
+```
+
+### Example cURL
+
+```bash
+curl -X POST https://api.servineo.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "your-password"
+  }'
+```
+
+## Two-Factor Authentication
+
+Servineo supports two-factor authentication (2FA) for enhanced security:
+
+### Enable 2FA
+
+```
+POST /api/auth/2fa/enable
+```
+
+### Verify 2FA Code
+
+```
+POST /api/auth/2fa/verify
+```
+
+<ParamField body="code" type="string" required>
+  The 6-digit verification code from your authenticator app
+</ParamField>
+
+## Logout
+
+### Endpoint
+
+```
+POST /api/auth/logout
+```
+
+### Request
+
+```bash
+curl -X POST https://api.servineo.com/api/auth/logout \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+```
+
+## Storing Tokens
+
+<Warning>
+  Never store authentication tokens in plain text. Use secure storage mechanisms:
+  - **Web**: HttpOnly cookies or secure localStorage
+  - **Mobile**: Secure keychain/keystore
+  - **Server**: Environment variables or secret management
+</Warning>
+
+### Client-Side Token Storage
+
+Example using localStorage (for development only):
+
+```typescript
+// Store token
+localStorage.setItem('servineo_token', token);
+
+// Retrieve token
+const token = localStorage.getItem('servineo_token');
+
+// Include in requests
+headers.set('authorization', `Bearer ${token}`);
+```
+
+## Token Refresh
+
+Tokens have an expiration time. Implement token refresh logic to maintain user sessions:
+
+```typescript
+if (tokenExpired) {
+  const newToken = await refreshToken();
+  localStorage.setItem('servineo_token', newToken);
+}
+```
+
+## Authorization Headers Setup
+
+The Servineo API client automatically handles authorization headers:
+
+```typescript
+// From baseApi.ts
+export const baseQuery = fetchBaseQuery({
+  baseUrl: API_URL,
+  prepareHeaders: (headers) => {
+    const token = localStorage.getItem('servineo_token');
+    if (token) {
+      headers.set('authorization', `Bearer ${token}`);
+    }
+    return headers;
+  },
+  credentials: 'include',
+});
+```
+
+## User Roles
+
+The API uses role-based access control (RBAC):
+
+| Role | Description |
+|------|-------------|
+| `requester` | Users who request services |
+| `fixer` | Service providers who fulfill requests |
+| `admin` | Platform administrators |
+
+```typescript
+type UserRole = 'requester' | 'fixer' | 'admin';
+```
+
+## Security Best Practices
+
+1. **Always use HTTPS** in production
+2. **Store tokens securely** - Never expose tokens in client-side code
+3. **Implement token expiration** - Refresh tokens before they expire
+4. **Validate on both sides** - Client and server validation
+5. **Use environment variables** - Keep API URLs and secrets in env vars
+6. **Enable 2FA** - Add extra security layer for sensitive operations
+
+## Error Responses
+
+### Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "error": "Unauthorized - Invalid or expired token"
+}
+```
+
+### Forbidden (403)
+
+```json
+{
+  "success": false,
+  "error": "Forbidden - Insufficient permissions for this operation"
+}
+```

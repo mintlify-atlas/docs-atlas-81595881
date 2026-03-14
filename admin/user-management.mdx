@@ -1,0 +1,337 @@
+---
+title: 'User Management'
+description: 'Managing users, roles, and profiles in Servineo'
+icon: 'users-gear'
+---
+
+## Overview
+
+The user management system in Servineo allows administrators to view, update, and manage user accounts across different roles: Requesters, Fixers, Visitors, and Admins.
+
+<Note>
+  User data is managed through Redux RTK Query for efficient state management and caching.
+</Note>
+
+## User Roles
+
+<CardGroup cols={2}>
+  <Card title="Requesters" icon="user">
+    Users who post job requests and hire fixers for services
+  </Card>
+  <Card title="Fixers" icon="screwdriver-wrench">
+    Service providers who accept and complete job requests
+  </Card>
+  <Card title="Visitors" icon="eye">
+    Unregistered users browsing the platform
+  </Card>
+  <Card title="Admins" icon="user-shield">
+    Platform administrators with full access
+  </Card>
+</CardGroup>
+
+## User Profile Structure
+
+```typescript
+interface IUser {
+  _id: string;
+  email: string;
+  name: string;
+  role: 'requester' | 'fixer' | 'visitor' | 'admin';
+  description?: string;
+  workLocation?: {
+    lat: number;
+    lng: number;
+    direccion?: string;
+  };
+}
+
+interface IUserProfile {
+  id: string;
+  userId: string;
+  profile: {
+    bio?: string;
+    skills?: string[];
+    certifications?: string[];
+    experiences?: Experience[];
+  };
+}
+```
+
+## Core User Operations
+
+### Fetching Users by Role
+
+Retrieve users filtered by their role:
+
+```typescript
+import { useGetUsersByRoleQuery } from '@/app/redux/services/userApi';
+
+function UserList() {
+  const { data: fixers, isLoading } = useGetUsersByRoleQuery('fixer');
+  
+  if (isLoading) return <div>Loading...</div>;
+  
+  return (
+    <div>
+      {fixers?.map((fixer) => (
+        <UserCard key={fixer.id} user={fixer} />
+      ))}
+    </div>
+  );
+}
+```
+
+### Getting User Details
+
+Fetch complete user information by ID:
+
+```typescript
+import { useGetUserByIdQuery } from '@/app/redux/services/userApi';
+
+function UserProfile({ userId }: { userId: string }) {
+  const { data: user, error, isLoading } = useGetUserByIdQuery(userId);
+  
+  if (error) return <div>Error loading user</div>;
+  if (isLoading) return <div>Loading...</div>;
+  
+  return (
+    <div>
+      <h2>{user.name}</h2>
+      <p>{user.email}</p>
+      <p>Role: {user.role}</p>
+    </div>
+  );
+}
+```
+
+### Updating User Description
+
+Allow users to update their profile description:
+
+```typescript
+import { useUpdateDescriptionMutation } from '@/app/redux/services/userApi';
+
+function EditDescription({ userId }: { userId: string }) {
+  const [updateDescription, { isLoading }] = useUpdateDescriptionMutation();
+  const [description, setDescription] = useState('');
+  
+  const handleSave = async () => {
+    try {
+      await updateDescription({ id: userId, description }).unwrap();
+      // Show success message
+    } catch (error) {
+      console.error('Failed to update description:', error);
+    }
+  };
+  
+  return (
+    <div>
+      <textarea 
+        value={description} 
+        onChange={(e) => setDescription(e.target.value)}
+      />
+      <button onClick={handleSave} disabled={isLoading}>
+        {isLoading ? 'Saving...' : 'Save'}
+      </button>
+    </div>
+  );
+}
+```
+
+## Converting Users to Fixers
+
+<Steps>
+  <Step title="Verify User Eligibility">
+    Ensure the user meets fixer requirements (certifications, experience, etc.)
+  </Step>
+  
+  <Step title="Prepare Fixer Profile">
+    Collect required fixer information:
+    
+    ```typescript
+    const fixerProfile = {
+      bio: "Experienced electrician with 10+ years",
+      skills: ["Electrical wiring", "Panel installation"],
+      certifications: ["Licensed Electrician"],
+      experiences: [
+        {
+          title: "Senior Electrician",
+          company: "ABC Electric",
+          duration: "2015-2024"
+        }
+      ]
+    };
+    ```
+  </Step>
+  
+  <Step title="Execute Conversion">
+    Use the conversion mutation:
+    
+    ```typescript
+    import { useConvertToFixerMutation } from '@/app/redux/services/userApi';
+    
+    const [convertToFixer, { isLoading }] = useConvertToFixerMutation();
+    
+    const handleConvert = async (userId: string) => {
+      try {
+        await convertToFixer({ 
+          id: userId, 
+          profile: fixerProfile 
+        }).unwrap();
+        
+        // User is now a fixer!
+      } catch (error) {
+        console.error('Conversion failed:', error);
+      }
+    };
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Converting a user to a fixer is a significant role change. Ensure all required profile information is complete before conversion.
+</Warning>
+
+## Location Management
+
+Update user work location for fixers:
+
+```typescript
+import { useUpdateLocationMutation } from '@/app/redux/services/userApi';
+
+function LocationEditor({ userId }: { userId: string }) {
+  const [updateLocation, { isLoading }] = useUpdateLocationMutation();
+  
+  const handleUpdateLocation = async (lat: number, lng: number, address: string) => {
+    try {
+      const result = await updateLocation({
+        id: userId,
+        location: {
+          lat,
+          lng,
+          direccion: address
+        }
+      }).unwrap();
+      
+      if (result.success) {
+        console.log('Location updated:', result.user);
+      }
+    } catch (error) {
+      console.error('Failed to update location:', error);
+    }
+  };
+  
+  return (
+    <div>
+      <MapPicker onLocationSelect={handleUpdateLocation} />
+      {isLoading && <span>Updating...</span>}
+    </div>
+  );
+}
+```
+
+## User Statistics Dashboard
+
+The admin dashboard shows real-time user metrics:
+
+```typescript
+interface UserStatsData {
+  totalUsers: number;
+  usersByRole: {
+    requester: number;
+    fixer: number;
+    visitor: number;
+    admin: number;
+  };
+  timestamp: string;
+}
+
+const statsResponse = await adminAPI.getUserStats(adminToken);
+
+if (statsResponse.success) {
+  const stats = statsResponse.data;
+  const fixerPercentage = Math.round((stats.usersByRole.fixer / stats.totalUsers) * 100);
+  console.log(`Fixers: ${stats.usersByRole.fixer} (${fixerPercentage}%)`);
+}
+```
+
+## Creating User Profiles
+
+Create detailed user profiles with additional information:
+
+```typescript
+import { useCreateUserProfileMutation } from '@/app/redux/services/userApi';
+
+function CreateProfile() {
+  const [createProfile, { isLoading }] = useCreateUserProfileMutation();
+  
+  const handleCreate = async () => {
+    const newProfile: IUserProfile = {
+      id: generateId(),
+      userId: currentUserId,
+      profile: {
+        bio: "Professional fixer",
+        skills: ["Plumbing", "Electrical"],
+        certifications: ["Licensed Plumber"],
+        experiences: []
+      }
+    };
+    
+    try {
+      await createProfile(newProfile).unwrap();
+      // Profile created successfully
+    } catch (error) {
+      console.error('Failed to create profile:', error);
+    }
+  };
+  
+  return (
+    <button onClick={handleCreate} disabled={isLoading}>
+      {isLoading ? 'Creating...' : 'Create Profile'}
+    </button>
+  );
+}
+```
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/user-profiles` | POST | Create new user profile |
+| `/user-profiles` | GET | Get all user profiles |
+| `/user-profiles/role/:role` | GET | Get users by role |
+| `/user-profiles/:id/convert-fixer` | PATCH | Convert user to fixer |
+| `/user/:id` | GET | Get user by ID |
+| `/user/:id/description` | POST | Update user description |
+| `/user/:id/location` | PATCH | Update user work location |
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Cache Management" icon="database">
+    RTK Query automatically caches user data and invalidates on mutations
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation">
+    Always handle API errors gracefully with user-friendly messages
+  </Card>
+  <Card title="Role Validation" icon="shield-check">
+    Verify user roles before allowing role-specific operations
+  </Card>
+  <Card title="Data Privacy" icon="lock">
+    Only expose necessary user information to admins
+  </Card>
+</CardGroup>
+
+## Related Pages
+
+<CardGroup cols={3}>
+  <Card title="Admin Dashboard" icon="gauge" href="/admin/dashboard">
+    Main admin control panel
+  </Card>
+  <Card title="Statistics" icon="chart-bar" href="/admin/statistics">
+    User analytics and metrics
+  </Card>
+  <Card title="Promotions" icon="badge-percent" href="/admin/promotions">
+    Manage user promotions
+  </Card>
+</CardGroup>

@@ -1,0 +1,729 @@
+---
+title: "Key Concepts"
+description: "Core concepts and architecture of the Servineo platform"
+---
+
+## Platform Architecture
+
+Servineo is built on a modern tech stack that ensures scalability, performance, and maintainability:
+
+```typescript
+// Next.js 15 with React 19
+"dependencies": {
+  "next": "15.5.4",
+  "react": "19.1.0",
+  "react-dom": "19.1.0",
+  "@reduxjs/toolkit": "^2.10.1",
+  "react-redux": "^9.2.0"
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="Frontend" icon="desktop">
+    Next.js 15 with App Router, React 19, TypeScript
+  </Card>
+  <Card title="State Management" icon="database">
+    Redux Toolkit with RTK Query for efficient data fetching
+  </Card>
+  <Card title="Backend API" icon="server">
+    RESTful API with Express.js and MongoDB
+  </Card>
+  <Card title="Real-time Features" icon="bolt">
+    WebSocket connections for live updates
+  </Card>
+</CardGroup>
+
+---
+
+## User Roles
+
+### Requester
+
+Clients who need services. The requester role is the default for all new accounts.
+
+```typescript
+interface IUser {
+  role: 'requester' | 'fixer' | 'admin';
+  name: string;
+  email: string;
+  telefono?: string;
+  ubicacion?: {
+    lat?: number;
+    lng?: number;
+    direccion?: string;
+    departamento?: string;
+    pais?: string;
+  };
+}
+```
+
+**Requester Capabilities:**
+- Browse and search for fixers by service type
+- Create job requests with location, time, and pricing
+- Schedule appointments with fixers
+- Track job progress through status updates
+- Make payments via multiple methods
+- Rate and review completed work
+
+<Info>
+Access user data in your application using Redux:
+```typescript
+const { user, loading } = useSelector((state: RootState) => state.user);
+const isRequester = user?.role === 'requester';
+```
+</Info>
+
+### Fixer
+
+Service professionals who offer their expertise. Fixers are requesters who have converted their accounts.
+
+```typescript
+interface IUser {
+  role: 'fixer';
+  servicios?: string[];  // Services offered
+  fixerProfile?: string; // Profile ID
+  
+  // Fixer-specific fields
+  vehiculo?: {
+    hasVehiculo?: boolean;
+    tipoVehiculo?: string;
+  };
+  
+  metodoPago?: {
+    hasEfectivo?: boolean;
+    qr?: boolean;
+    tarjetaCredito?: boolean;
+  };
+  
+  experience?: {
+    descripcion?: string;
+  };
+  
+  workLocation?: {
+    lat?: number;
+    lng?: number;
+    direccion?: string;
+    departamento?: string;
+    pais?: string;
+  };
+}
+```
+
+**Fixer Capabilities:**
+- Create and manage professional profiles
+- List multiple services from 24+ categories
+- Receive and respond to job requests
+- Manage appointment calendars
+- Accept payments through preferred methods
+- Build reputation through ratings
+
+<Tip>
+Convert a requester to a fixer using the mutation:
+```typescript
+const { convertToFixer } = useConvertToFixerMutation();
+await convertToFixer({ id: userId, profile: fixerData });
+```
+</Tip>
+
+### Admin
+
+Platform administrators with full access to manage users, moderate content, and oversee operations.
+
+---
+
+## Services
+
+Servineo offers 24+ service categories to cover all home and business needs.
+
+### Service Structure
+
+```typescript
+interface Service {
+  name: string;        // Display name
+  icon: string;        // Emoji or icon identifier
+  description: string; // Service description
+  demand: number;      // Demand percentage (0-100)
+  slug: string;        // URL-friendly identifier
+  image?: string;      // Service category image
+}
+```
+
+### Available Service Categories
+
+<CardGroup cols={3}>
+  <Card title="Plumbing (95%)" icon="wrench">
+    Installations, repairs, and maintenance
+  </Card>
+  <Card title="Electrical (90%)" icon="bolt">
+    Electrical installations and repairs
+  </Card>
+  <Card title="Carpentry (85%)" icon="hammer">
+    Furniture, doors, and woodwork
+  </Card>
+  <Card title="Cleaning (88%)" icon="spray-can">
+    Residential and commercial cleaning
+  </Card>
+  <Card title="Painting (80%)" icon="paintbrush">
+    Interior and exterior painting
+  </Card>
+  <Card title="Masonry (82%)" icon="brick">
+    Construction and masonry repairs
+  </Card>
+</CardGroup>
+
+**Complete Service List:**
+```typescript
+const services = [
+  'Plomería', 'Electricidad', 'Carpintería', 'Pintura',
+  'Limpieza', 'Jardinería', 'Albañilería', 'Cerrajería',
+  'Gasfitería', 'Vidriería', 'Soldadura', 'Mecánica',
+  'Refrigeración', 'Techos y Cubiertas', 'Tapicería',
+  'Instalación CCTV', 'Piscinas', 'Mudanzas', 'Fumigación',
+  'Calefacción', 'Paneles Solares', 'Impermeabilización',
+  'Domótica', 'Lavado de alfombras'
+];
+```
+
+<Note>
+Each service has a demand indicator showing its popularity. High-demand services (90%+) typically have more active fixers and requests.
+</Note>
+
+---
+
+## Jobs
+
+Jobs represent the core transactional unit in Servineo. They connect requesters with fixers for specific tasks.
+
+### Job Lifecycle
+
+```typescript
+interface Job {
+  _id: string;
+  title: string;
+  description: string;
+  status: string;
+  requesterId: string;
+  fixerId: string;
+  price: number;
+  createdAt: string;
+  rating?: number;
+  comment?: string;
+}
+```
+
+### Job Statuses
+
+<Steps>
+  <Step title="Pending">
+    Initial state when a requester creates a job request. The fixer has not yet responded.
+    
+    ```typescript
+    status: 'pending'
+    ```
+  </Step>
+  
+  <Step title="Accepted">
+    Fixer has accepted the job request and agreed to the terms.
+    
+    ```typescript
+    status: 'accepted'
+    ```
+  </Step>
+  
+  <Step title="In Progress">
+    Work has begun. The fixer is actively working on the job.
+    
+    ```typescript
+    status: 'in_progress'
+    ```
+  </Step>
+  
+  <Step title="Completed">
+    Work is finished. Awaiting payment and review.
+    
+    ```typescript
+    status: 'completed'
+    ```
+  </Step>
+  
+  <Step title="Paid">
+    Payment has been processed. Job is fully closed.
+    
+    ```typescript
+    status: 'paid'
+    rating?: number;  // 1-5 stars
+    comment?: string; // Review text
+    ```
+  </Step>
+  
+  <Step title="Cancelled">
+    Job was cancelled by either party before completion.
+    
+    ```typescript
+    status: 'cancelled'
+    ```
+  </Step>
+</Steps>
+
+### Job Request Creation
+
+Requesters create job requests with detailed information:
+
+```typescript
+interface CreateJobRequestPayload {
+  title: string;                    // e.g., "Fix leaking faucet"
+  description: string;              // Detailed problem description
+  location: {
+    type: 'Point';
+    coordinates: [string, string];  // [longitude, latitude]
+  };
+  startTime: string;                // ISO 8601 datetime
+  endTime: string;                  // ISO 8601 datetime
+  price: string | number;           // Suggested price
+  fixerId: string;                  // Target fixer
+  requesterId: string;              // Current user
+  appointmentId?: string;           // Optional: link to appointment
+  offerId?: string;                 // Optional: link to offer
+}
+
+// Create a job request
+import { createJobRequest } from '@/services/job-requests';
+
+const payload: CreateJobRequestPayload = {
+  title: "Kitchen sink repair",
+  description: "Leaking pipe under the sink needs immediate repair",
+  location: {
+    type: 'Point',
+    coordinates: ["-99.1332", "19.4326"] // Mexico City example
+  },
+  startTime: "2026-03-15T09:00:00Z",
+  endTime: "2026-03-15T11:00:00Z",
+  price: 500,
+  fixerId: "fixer_123",
+  requesterId: "requester_456"
+};
+
+const result = await createJobRequest(payload, authToken);
+```
+
+<Warning>
+Always include accurate location coordinates. The platform uses these to calculate distances and match requesters with nearby fixers.
+</Warning>
+
+### Fetching Jobs
+
+Multiple API methods are available for retrieving jobs:
+
+```typescript
+import { fixerService } from '@/services/fixerService';
+
+// Get all jobs
+const allJobs: Job[] = await fixerService.getJobs();
+
+// Get jobs with associated fixers
+const jobsWithFixers: JobWithFixers[] = await fixerService.getJobsWithFixers();
+
+// Structure of JobWithFixers
+interface JobWithFixers {
+  jobType: string;    // Service category
+  fixers: Fixer[];    // All fixers offering this service
+}
+```
+
+---
+
+## Fixers
+
+Fixers are the service professionals on the platform.
+
+### Fixer Profile
+
+```typescript
+interface Fixer {
+  id: string;
+  name: string;
+  city: string;
+  rating: number;       // Average rating (0-5)
+  avatar?: string;      // Profile photo URL
+  description?: string; // Professional bio
+  phone?: string;
+  email?: string;
+}
+```
+
+### Finding Fixers
+
+Servineo provides multiple ways to discover fixers:
+
+**1. Get All Fixers**
+```typescript
+const allFixers: Fixer[] = await fixerService.getFixers();
+```
+
+**2. Get Fixer by ID**
+```typescript
+const fixer: Fixer = await fixerService.getFixerById('fixer_123');
+```
+
+**3. Get Fixers by Service Type**
+```typescript
+// Find all plumbers
+const plumbers: Fixer[] = await fixerService.getFixersByJobType('plomeria');
+
+// Find all electricians
+const electricians: Fixer[] = await fixerService.getFixersByJobType('electricidad');
+```
+
+<Tip>
+Filter fixers by rating, distance, and availability to find the best match for your needs.
+</Tip>
+
+### Fixer Rating System
+
+Fixers are rated by requesters after job completion:
+
+```typescript
+interface Job {
+  rating?: number;  // 1-5 stars
+  comment?: string; // Written review
+}
+
+// Average rating is calculated across all completed jobs
+interface Fixer {
+  rating: number; // e.g., 4.7
+}
+```
+
+---
+
+## Appointments
+
+Appointments are scheduled meetings between requesters and fixers for specific jobs.
+
+### Appointment Structure
+
+```typescript
+interface Appointment {
+  _id: string;
+  id_fixer: string;           // Fixer's user ID
+  id_requester: string;       // Requester's user ID
+  selected_date: { $date: string };
+  current_requester_name: string;
+  appointment_type: string;   // Service category
+  appointment_description: string;
+  link_id: string;           // Unique appointment link
+  current_requester_phone: string;
+  starting_time: { $date: string };
+  finishing_time: { $date: string };
+  schedule_state: string;    // 'scheduled', 'completed', 'cancelled'
+  display_name_location: string;
+  lat: string | null;        // Location latitude
+  lon: string | null;        // Location longitude
+  cancelled_fixer: boolean;  // True if fixer cancelled
+  reprogram_reason: string;  // Reason for rescheduling
+  createdAt: { $date: string };
+  updatedAt: { $date: string };
+}
+```
+
+### Managing Appointments
+
+**Fetch Appointments for a Fixer:**
+```typescript
+import { getAppointmentsByFixerId } from '@/services/appointments';
+
+const appointments: Appointment[] = await getAppointmentsByFixerId('fixer_123');
+
+console.log(`Found ${appointments.length} appointments`);
+```
+
+### Appointment States
+
+<CardGroup cols={3}>
+  <Card title="Scheduled" icon="calendar">
+    Confirmed appointment, both parties are committed
+  </Card>
+  <Card title="Completed" icon="check">
+    Service has been delivered successfully
+  </Card>
+  <Card title="Cancelled" icon="xmark">
+    Appointment was cancelled by either party
+  </Card>
+</CardGroup>
+
+<Info>
+Appointments include geographic coordinates for easy navigation. Fixers can use these coordinates with mapping apps to find job locations.
+</Info>
+
+---
+
+## Location Services
+
+Location is central to Servineo's matching algorithm.
+
+### User Location
+
+Both requesters and fixers have location data:
+
+```typescript
+interface IUser {
+  ubicacion?: {
+    lat?: number;        // Latitude
+    lng?: number;        // Longitude
+    direccion?: string;  // Street address
+    departamento?: string; // State/province
+    pais?: string;       // Country
+  };
+  
+  // Fixers also have work location
+  workLocation?: {
+    lat?: number;
+    lng?: number;
+    direccion?: string;
+    departamento?: string;
+    pais?: string;
+  };
+}
+```
+
+### Setting User Location
+
+```typescript
+import { enviarUbicacion } from '@/services/registro';
+
+await enviarUbicacion(
+  19.4326,              // latitude
+  -99.1332,             // longitude
+  "Av. Reforma 222",    // address
+  "CDMX",               // department/state
+  "México"              // country
+);
+```
+
+### Job Location
+
+Each job request includes a precise location:
+
+```typescript
+interface CreateJobRequestPayload {
+  location: {
+    type: 'Point';                    // GeoJSON Point type
+    coordinates: [string, string];    // [longitude, latitude]
+  };
+}
+```
+
+<Warning>
+**Important:** GeoJSON format uses `[longitude, latitude]` order, which is reversed from the common `(lat, lng)` convention.
+
+Correct:
+```typescript
+coordinates: ["-99.1332", "19.4326"] // [lng, lat]
+```
+
+Incorrect:
+```typescript
+coordinates: ["19.4326", "-99.1332"] // [lat, lng] - WRONG!
+```
+</Warning>
+
+---
+
+## Payment Methods
+
+Servineo supports multiple payment methods for flexibility:
+
+```typescript
+interface IUser {
+  metodoPago?: {
+    hasEfectivo?: boolean;     // Cash payments
+    qr?: boolean;              // QR code payments
+    tarjetaCredito?: boolean;  // Credit card via Stripe
+  };
+}
+```
+
+<CardGroup cols={3}>
+  <Card title="Cash" icon="money-bill">
+    Traditional cash payment upon job completion
+  </Card>
+  <Card title="QR Code" icon="qrcode">
+    Quick payment via QR code scanning
+  </Card>
+  <Card title="Credit Card" icon="credit-card">
+    Secure online payments through Stripe
+  </Card>
+</CardGroup>
+
+**Payment Integration:**
+```typescript
+import { StripeProvider } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_KEY!);
+
+// Stripe is fully integrated for credit card payments
+```
+
+---
+
+## Authentication
+
+Servineo supports two authentication methods:
+
+### Google OAuth
+
+```typescript
+import { enviarTokenGoogle } from '@/services/registro';
+
+// After user signs in with Google
+const response: GoogleAuthResponse = await enviarTokenGoogle(googleToken);
+
+if (response.status === 'ok') {
+  localStorage.setItem('servineo_token', response.token!);
+  // User is authenticated
+}
+```
+
+**Response Types:**
+```typescript
+interface GoogleAuthResponse {
+  status: 'ok' | 'firstTime' | 'exists' | 'error';
+  firstTime?: boolean;   // New user registration
+  token?: string;        // JWT authentication token
+  user?: User;
+  message?: string;
+}
+```
+
+### Manual Registration
+
+```typescript
+import { enviarRegistroManual } from '@/services/registro';
+
+const response = await enviarRegistroManual(
+  "John Doe",
+  "john@example.com",
+  "securePassword123"
+);
+
+if (response.success) {
+  localStorage.setItem('servineo_token', response.token!);
+  // User is registered and authenticated
+}
+```
+
+### Token Management
+
+JWT tokens are stored in localStorage and included in API requests:
+
+```typescript
+const token = localStorage.getItem('servineo_token');
+
+const response = await fetch(`${API_URL}/api/endpoint`, {
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  }
+});
+```
+
+<Tip>
+Tokens are automatically validated on each request. If a token expires, users are prompted to log in again.
+</Tip>
+
+---
+
+## State Management
+
+Servineo uses Redux Toolkit for predictable state management:
+
+```typescript
+import { useSelector } from 'react-redux';
+
+interface RootState {
+  user: {
+    user: IUser | null;
+    loading: boolean;
+    isAuthenticated: boolean;
+  };
+}
+
+// Access user state anywhere in the app
+const { user, loading, isAuthenticated } = useSelector(
+  (state: RootState) => state.user
+);
+
+if (isAuthenticated) {
+  // User is logged in
+  console.log(`Welcome, ${user?.name}!`);
+}
+```
+
+### RTK Query for API Calls
+
+API endpoints are defined using RTK Query:
+
+```typescript
+import { baseApi } from './baseApi';
+
+export const becomeApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    convertToFixer: builder.mutation<unknown, { id: string; profile: unknown }>({
+      query: ({ id, profile }) => ({
+        url: `/user-profiles/${id}/convert-fixer`,
+        method: 'PATCH',
+        body: { profile },
+      }),
+      invalidatesTags: ['User'],
+    }),
+  }),
+});
+
+export const { useConvertToFixerMutation } = becomeApi;
+```
+
+---
+
+## Role-Based UI
+
+The interface adapts based on the user's role:
+
+```typescript
+import { useSelector } from 'react-redux';
+
+const { user } = useSelector((state: RootState) => state.user);
+const isFixer = user?.role === 'fixer';
+
+return (
+  <div>
+    {/* Different hero section based on role */}
+    <HeroSection isFixer={isFixer} />
+    
+    {/* Map only shown to requesters */}
+    {!isFixer && <MapSection />}
+    
+    {/* Fixers see their dashboard */}
+    {isFixer && <FixerDashboard />}
+  </div>
+);
+```
+
+<Info>
+Requesters see a map of nearby fixers and service categories, while fixers see their appointment calendar and incoming job requests.
+</Info>
+
+---
+
+## Next Steps
+
+Now that you understand Servineo's core concepts:
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api/introduction">
+    Explore detailed API documentation
+  </Card>
+  <Card title="Get Started" icon="rocket" href="/quickstart">
+    Get up and running with Servineo
+  </Card>
+</CardGroup>

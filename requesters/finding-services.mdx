@@ -1,0 +1,232 @@
+---
+title: 'Finding Services'
+description: 'Learn how to search and filter for the perfect fixer'
+icon: 'magnifying-glass'
+---
+
+## Search Overview
+
+Servineo provides a powerful advanced search system to help you find the right fixer for your needs. The search interface includes multiple filters and sorting options.
+
+## Advanced Search Features
+
+### Search by Category
+
+Use the category dropdown to filter fixers by service tags:
+
+```typescript
+// Category filter implementation
+const { data: tagsData } = useGetTagsQuery({
+  search: searchQuery?.trim() || undefined,
+  category: categoryFilters.length > 0 ? categoryFilters : undefined,
+});
+```
+
+Reference: `src/Components/Adv-search/DropdownList.tsx:31`
+
+<Steps>
+  <Step title="Select Categories">
+    Check one or more service categories from the dropdown list. Categories are dynamically loaded from the API.
+  </Step>
+  <Step title="View Filtered Results">
+    Results update automatically as you select categories. Selected categories persist in the URL.
+  </Step>
+  <Step title="Clear Filters">
+    Use the clear button to reset category selections at any time.
+  </Step>
+</Steps>
+
+### Filter by Rating
+
+Find highly-rated fixers using the star rating filter:
+
+<Accordion title="How the Rating Filter Works">
+  The rating system allows you to filter fixers by their average rating from 1.0 to 5.0 stars with decimal precision.
+
+  ```typescript
+  // Rating filter with decimal precision
+  const handleSubScaleClick = (subScale: number) => {
+    if (selectedMainStar && onChange) {
+      const decimalValue = subScale === 0 
+        ? selectedMainStar 
+        : selectedMainStar + subScale / 10;
+      onChange(decimalValue);
+    }
+  };
+  ```
+
+  Reference: `src/Components/Adv-search/CalificacionEstrella.tsx:53`
+</Accordion>
+
+**Rating Selection:**
+
+1. Click on a star (1-5) to open the precision selector
+2. Choose a decimal value (e.g., 4.0, 4.1, 4.2, etc.)
+3. Fixers with ratings at or above your selection will be shown
+
+<Tip>
+  Use decimal ratings (e.g., 4.5) for more precise filtering. This helps you find fixers with consistently high ratings.
+</Tip>
+
+### Price Range Filtering
+
+Filter services by your budget:
+
+```typescript
+// Price range API call
+const { data: priceRangesData } = useGetPriceRangesQuery();
+
+// Price ranges are cached in sessionStorage
+sessionStorage.setItem('adv_price_ranges', JSON.stringify(items));
+```
+
+Reference: `src/Components/Adv-search/PriceRangeList.tsx:29`
+
+**Available Price Ranges:**
+
+- Under 90bs
+- 90bs - 200bs  
+- 200bs - 500bs
+- 500bs and above
+
+<Note>
+  Price ranges are dynamically loaded from the backend and may vary based on the service category.
+</Note>
+
+### Location & City Filters
+
+Narrow your search by location:
+
+```typescript
+// Location-based filtering
+const selectedCities = useAppSelector(selectSelectedCities);
+const isAutoSelectedCity = useAppSelector(selectIsAutoSelectedCity);
+```
+
+Reference: `src/Components/FiltersPanel.tsx:26`
+
+**Location Features:**
+
+- Filter by specific cities
+- Auto-selection based on your profile location
+- Proximity-based sorting
+- Map view of fixer locations
+
+### Date & Availability
+
+Check fixer availability before booking:
+
+```typescript
+// Date filtering component
+import DateFilterSelector from '@/Components/Adv-search/DateFilterSelector';
+
+// Allows filtering by:
+// - Specific dates
+// - Date ranges  
+// - Available time slots
+```
+
+Reference: `src/Components/Adv-search/DateFilterSelector.tsx`
+
+## Search Results
+
+### Fixer Cards
+
+Each search result displays:
+
+- **Profile Photo**: Visual identification
+- **Name & Rating**: Star rating and number of completed jobs
+- **Services**: List of offered services
+- **Location**: City and proximity
+- **Contact**: WhatsApp quick contact button
+- **Availability**: Calendar link for booking
+
+```typescript
+// Fixer profile display
+<div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-full">
+  <Star className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+  <span>{fixer.rating?.toFixed(1) || 'Nuevo'}</span>
+</div>
+<span className="text-sm opacity-80">
+  {fixer.completedJobs} trabajos realizados
+</span>
+```
+
+Reference: `src/Components/Fixer-profile.tsx:120`
+
+### View Fixer Profile
+
+Click on any fixer card to view their complete profile:
+
+<CardGroup cols={2}>
+  <Card title="Bio & Services" icon="briefcase">
+    Detailed description and list of offered services
+  </Card>
+  <Card title="Contact Info" icon="phone">
+    Phone, email, and WhatsApp contact details
+  </Card>
+  <Card title="Location Map" icon="map">
+    Interactive map showing fixer's service area
+  </Card>
+  <Card title="Statistics" icon="chart-line">
+    Job completion rates and monthly activity
+  </Card>
+</CardGroup>
+
+## Saving Search Filters
+
+Your search preferences are automatically saved:
+
+```typescript
+// Filters persist in URL parameters
+const sp = new URLSearchParams(window.location.search);
+const urlTags = sp.getAll('tags') || [];
+
+// Restore filters on page load
+if (urlTags.length > 0) {
+  setSelectedCategories(urlTags);
+  onFilterChange?.({ categories: urlTags });
+}
+```
+
+Reference: `src/Components/Adv-search/DropdownList.tsx:53`
+
+<Tip>
+  Bookmark your search URL to quickly access the same filtered results later.
+</Tip>
+
+## Search Best Practices
+
+1. **Start Broad**: Begin with category selection, then refine with other filters
+2. **Check Ratings**: Look for fixers with 4.0+ ratings and multiple completed jobs
+3. **Verify Location**: Ensure the fixer serves your area before booking
+4. **Read Reviews**: Check detailed ratings and comments from other requesters
+5. **Compare Options**: View multiple profiles before making a decision
+
+## API Reference
+
+### Get Service Tags
+
+```typescript
+import { useGetTagsQuery } from '@/app/redux/services/jobOffersApi';
+
+const { data, isLoading, error } = useGetTagsQuery({
+  search: string,
+  category: string[]
+});
+```
+
+### Get Price Ranges
+
+```typescript
+import { useGetPriceRangesQuery } from '@/app/redux/services/jobOffersApi';
+
+const { data: priceRangesData, isLoading, error } = useGetPriceRangesQuery();
+// Returns: { ranges: [{ label: string, min: number, max: number }] }
+```
+
+## Next Steps
+
+<Card title="Booking Appointments" icon="calendar-check" href="/requesters/booking-appointments">
+  Once you've found the perfect fixer, learn how to book an appointment
+</Card>

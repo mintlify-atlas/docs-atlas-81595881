@@ -1,0 +1,172 @@
+---
+title: "Introduction to Servineo"
+description: "Connect with skilled service professionals for all your home and business needs"
+---
+
+## Welcome to Servineo
+
+Servineo is a comprehensive platform that connects service requesters with skilled professionals (fixers) across a wide range of services. Whether you need a plumber, electrician, carpenter, or any other home service professional, Servineo makes it easy to find, contact, and hire the right person for the job.
+
+<CardGroup cols={2}>
+  <Card title="For Requesters" icon="user">
+    Find and hire skilled professionals for over 24 different service categories
+  </Card>
+  <Card title="For Fixers" icon="wrench">
+    Grow your business by connecting with clients who need your services
+  </Card>
+</CardGroup>
+
+## Platform Overview
+
+Servineo is built on Next.js 15 and React 19, providing a modern, fast, and responsive experience for both requesters and fixers. The platform includes:
+
+<CardGroup cols={2}>
+  <Card title="Real-time Communication" icon="message">
+    Direct messaging and appointment scheduling
+  </Card>
+  <Card title="Location-based Matching" icon="location-dot">
+    Find professionals near you using interactive maps
+  </Card>
+  <Card title="Secure Payments" icon="credit-card">
+    Multiple payment methods including cash, QR codes, and credit cards
+  </Card>
+  <Card title="Rating System" icon="star">
+    Review and rate professionals based on completed work
+  </Card>
+</CardGroup>
+
+## Available Services
+
+Servineo offers 24+ service categories to meet all your needs:
+
+<CardGroup cols={3}>
+  <Card title="Plumbing" icon="droplet">
+    Installations, repairs, and maintenance
+  </Card>
+  <Card title="Electrical" icon="bolt">
+    Electrical installations and repairs
+  </Card>
+  <Card title="Carpentry" icon="hammer">
+    Furniture, doors, and woodwork
+  </Card>
+  <Card title="Painting" icon="paintbrush">
+    Interior and exterior painting
+  </Card>
+  <Card title="Cleaning" icon="broom">
+    Residential and commercial cleaning
+  </Card>
+  <Card title="Gardening" icon="seedling">
+    Garden maintenance and design
+  </Card>
+</CardGroup>
+
+<Info>
+The platform supports over 20+ additional services including masonry, locksmith, glass work, welding, mechanics, refrigeration, roofing, upholstery, CCTV installation, pool maintenance, moving, fumigation, heating, solar panels, waterproofing, home automation, and carpet cleaning.
+</Info>
+
+## User Roles
+
+Servineo supports three distinct user roles:
+
+### Requester
+Clients who need services. Requesters can:
+- Browse and search for fixers by service type and location
+- View fixer profiles, ratings, and experience
+- Create job requests with detailed descriptions and pricing
+- Schedule appointments with fixers
+- Track job progress and make payments
+- Leave ratings and reviews
+
+### Fixer
+Service professionals who offer their expertise. Fixers can:
+- Create detailed profiles showcasing services and experience
+- Receive job requests from requesters
+- Manage appointments and schedules
+- Accept or decline job offers
+- Receive payments through multiple methods
+- Build reputation through ratings and reviews
+
+### Admin
+Platform administrators who manage the overall system and ensure quality service.
+
+## Key Features
+
+### Authentication & Profile Management
+Servineo offers flexible authentication options:
+
+```typescript
+interface IUser {
+  _id?: string;
+  id?: string;
+  name: string;
+  email: string;
+  url_photo?: string;
+  role: 'requester' | 'fixer' | 'admin';
+  
+  authProviders?: Array<{
+    provider: string;
+    providerId: string;
+    password?: string;
+  }>;
+  
+  telefono?: string;
+  ubicacion?: {
+    lat?: number;
+    lng?: number;
+    direccion?: string;
+    departamento?: string;
+    pais?: string;
+  };
+}
+```
+
+<Tip>
+Users can sign up using Google OAuth or manual registration with email and password. Both authentication methods are fully supported.
+</Tip>
+
+### Location-Based Services
+
+The platform uses geographic coordinates to match requesters with nearby fixers:
+
+```typescript
+interface CreateJobRequestPayload {
+  title: string;
+  description: string;
+  location: {
+    type: 'Point';
+    coordinates: [string, string]; // [longitude, latitude]
+  };
+  startTime: string;
+  endTime: string;
+  price: string | number;
+  fixerId: string;
+  requesterId: string;
+}
+```
+
+### Multi-Language Support
+
+Servineo is built with internationalization using `next-intl`, supporting multiple languages for a global audience.
+
+## Technology Stack
+
+Servineo leverages modern web technologies:
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **State Management**: Redux Toolkit with RTK Query
+- **UI Components**: Material-UI, Radix UI, Tailwind CSS
+- **Maps**: Leaflet and React Leaflet
+- **Payments**: Stripe integration
+- **Authentication**: JWT with Google OAuth support
+- **Forms**: React Hook Form with Zod validation
+
+## Getting Started
+
+Ready to start using Servineo? Check out our [Quick Start Guide](/quickstart) to learn how to:
+
+1. Create your account
+2. Set up your profile
+3. Find and hire fixers (for requesters)
+4. Offer your services (for fixers)
+
+Or dive deeper into [Key Concepts](/key-concepts) to understand how jobs, appointments, and services work on the platform.

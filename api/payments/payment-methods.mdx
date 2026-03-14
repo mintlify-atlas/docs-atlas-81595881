@@ -1,0 +1,427 @@
+---
+title: 'Payment Methods'
+description: 'Overview of supported payment methods'
+icon: 'credit-card'
+---
+
+## Overview
+
+Servineo supports multiple payment methods to provide flexibility for both requesters and fixers.
+
+## Supported Payment Methods
+
+<CardGroup cols={3}>
+  <Card title="Cash" icon="money-bill">
+    Pay in cash directly to the fixer
+  </Card>
+  <Card title="QR Code" icon="qrcode">
+    Mobile payment via QR code scanning
+  </Card>
+  <Card title="Credit Card" icon="credit-card">
+    Credit and debit card payments
+  </Card>
+</CardGroup>
+
+## Payment Method Types
+
+### User Payment Methods
+
+Users can configure their accepted payment methods in their profile:
+
+```typescript
+interface UserPaymentMethods {
+  hasEfectivo?: boolean;      // Accepts cash
+  qr?: boolean;               // Accepts QR payments
+  tarjetaCredito?: boolean;   // Accepts credit cards
+}
+```
+
+### Fixer Profile Payment Methods
+
+Fixers specify payment methods when creating their profile:
+
+```typescript
+interface FixerPaymentMethods {
+  paymentMethods: Array<{
+    type: string;           // 'efectivo', 'qr', 'tarjeta'
+    accountInfo?: string;   // Optional account details
+  }>;
+}
+```
+
+## Get User Payment Methods
+
+Payment methods are included in the user profile response.
+
+### Endpoint
+
+```
+GET /api/user/{id}
+```
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/user/user123 \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { useGetUserByIdQuery } from '@/app/redux/services/userApi';
+
+const { data: user } = useGetUserByIdQuery('user123');
+
+// Access payment methods
+const paymentMethods = user?.metodoPago;
+console.log('Accepts cash:', paymentMethods?.hasEfectivo);
+console.log('Accepts QR:', paymentMethods?.qr);
+console.log('Accepts credit card:', paymentMethods?.tarjetaCredito);
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "_id": "user123",
+  "name": "Juan Pérez",
+  "email": "juan@example.com",
+  "role": "fixer",
+  "metodoPago": {
+    "hasEfectivo": true,
+    "qr": true,
+    "tarjetaCredito": false
+  }
+}
+```
+
+---
+
+## Update Payment Methods
+
+Update the payment methods a user accepts.
+
+### Endpoint
+
+```
+PATCH /api/user/{id}
+```
+
+### Request Body
+
+<ParamField body="metodoPago" type="object" required>
+  Payment methods configuration
+  
+  <Expandable title="Payment Methods">
+    <ParamField body="hasEfectivo" type="boolean">
+      Accept cash payments
+    </ParamField>
+    
+    <ParamField body="qr" type="boolean">
+      Accept QR code payments
+    </ParamField>
+    
+    <ParamField body="tarjetaCredito" type="boolean">
+      Accept credit card payments
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X PATCH https://api.servineo.com/api/user/user123 \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "metodoPago": {
+      "hasEfectivo": true,
+      "qr": true,
+      "tarjetaCredito": true
+    }
+  }'
+```
+
+```typescript TypeScript
+const updatePaymentMethods = async (
+  userId: string,
+  methods: {
+    cash: boolean;
+    qr: boolean;
+    creditCard: boolean;
+  }
+) => {
+  const response = await fetch(
+    `https://api.servineo.com/api/user/${userId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        metodoPago: {
+          hasEfectivo: methods.cash,
+          qr: methods.qr,
+          tarjetaCredito: methods.creditCard
+        }
+      })
+    }
+  );
+  
+  return await response.json();
+};
+
+// Enable all payment methods
+await updatePaymentMethods('user123', {
+  cash: true,
+  qr: true,
+  creditCard: true
+});
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "_id": "user123",
+  "metodoPago": {
+    "hasEfectivo": true,
+    "qr": true,
+    "tarjetaCredito": true
+  },
+  "updatedAt": "2024-03-14T16:00:00.000Z"
+}
+```
+
+---
+
+## Configure Fixer Payment Methods
+
+When creating or updating a fixer profile, specify payment methods with account details.
+
+### Endpoint
+
+```
+PATCH /api/user-profiles/{id}/convert-fixer
+```
+
+### Request Body
+
+<ParamField body="profile.paymentMethods" type="array" required>
+  Array of payment method objects
+  
+  <Expandable title="Payment Method Object">
+    <ParamField body="type" type="string" required>
+      Payment type: `efectivo`, `qr`, `tarjeta`
+    </ParamField>
+    
+    <ParamField body="accountInfo" type="string">
+      Optional account information (e.g., QR code data, bank account)
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X PATCH https://api.servineo.com/api/user-profiles/profile123/convert-fixer \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "profile": {
+      "paymentMethods": [
+        {
+          "type": "efectivo"
+        },
+        {
+          "type": "qr",
+          "accountInfo": "123456789"
+        },
+        {
+          "type": "tarjeta",
+          "accountInfo": "Visa/Mastercard accepted"
+        }
+      ]
+    }
+  }'
+```
+
+```typescript TypeScript
+interface PaymentMethod {
+  type: 'efectivo' | 'qr' | 'tarjeta';
+  accountInfo?: string;
+}
+
+const configureFixerPayments = async (
+  profileId: string,
+  methods: PaymentMethod[]
+) => {
+  const response = await fetch(
+    `https://api.servineo.com/api/user-profiles/${profileId}/convert-fixer`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        profile: {
+          paymentMethods: methods
+        }
+      })
+    }
+  );
+  
+  return await response.json();
+};
+
+// Configure payment methods
+await configureFixerPayments('profile123', [
+  { type: 'efectivo' },
+  { type: 'qr', accountInfo: '123456789' },
+  { type: 'tarjeta', accountInfo: 'Visa/Mastercard accepted' }
+]);
+```
+
+</CodeGroup>
+
+---
+
+## Payment Method Details
+
+### Cash (Efectivo)
+
+<AccordionGroup>
+  <Accordion title="Advantages">
+    - No transaction fees
+    - Instant payment
+    - No technical requirements
+    - Widely accepted
+  </Accordion>
+  
+  <Accordion title="Considerations">
+    - Requires in-person payment
+    - Need to manage change
+    - Less convenient for tracking
+  </Accordion>
+</AccordionGroup>
+
+**Configuration:**
+```json
+{
+  "type": "efectivo"
+}
+```
+
+### QR Code Payments
+
+<AccordionGroup>
+  <Accordion title="Advantages">
+    - Fast digital payment
+    - Lower fees than cards
+    - Popular in local markets
+    - Easy tracking
+  </Accordion>
+  
+  <Accordion title="Requirements">
+    - Smartphone required
+    - QR code account (e.g., bank app, payment provider)
+    - Internet connection
+  </Accordion>
+</AccordionGroup>
+
+**Configuration:**
+```json
+{
+  "type": "qr",
+  "accountInfo": "QR_CODE_ID_OR_PHONE_NUMBER"
+}
+```
+
+### Credit/Debit Cards
+
+<AccordionGroup>
+  <Accordion title="Advantages">
+    - Secure transactions
+    - Automatic receipts
+    - Buyer protection
+    - Professional image
+  </Accordion>
+  
+  <Accordion title="Requirements">
+    - Payment processor account
+    - Higher transaction fees
+    - PCI compliance for storage
+  </Accordion>
+</AccordionGroup>
+
+**Configuration:**
+```json
+{
+  "type": "tarjeta",
+  "accountInfo": "Accepted cards: Visa, Mastercard, AmEx"
+}
+```
+
+---
+
+## Filter Fixers by Payment Method
+
+When searching for fixers, you can filter by accepted payment methods:
+
+```typescript
+const fixersAcceptingQR = fixers.filter(
+  fixer => fixer.metodoPago?.qr === true
+);
+
+const fixersAcceptingCards = fixers.filter(
+  fixer => fixer.metodoPago?.tarjetaCredito === true
+);
+
+const fixersAcceptingCash = fixers.filter(
+  fixer => fixer.metodoPago?.hasEfectivo === true
+);
+```
+
+## Best Practices
+
+<Warning>
+  **Security Considerations:**
+  - Never store full credit card numbers
+  - Use tokenization for card payments
+  - Validate payment method data
+  - Encrypt sensitive account information
+</Warning>
+
+<Info>
+  **For Fixers:**
+  - Accept multiple payment methods to increase bookings
+  - Keep payment account info up to date
+  - Clearly communicate payment preferences to clients
+  - Confirm payment method before appointment
+</Info>
+
+<Tip>
+  **For Requesters:**
+  - Check fixer's accepted payment methods before booking
+  - Prepare payment method in advance
+  - Keep digital receipts for all transactions
+</Tip>
+
+## Related Endpoints
+
+- [Process Payment](/api/payments/process-payment)
+- [Wallet Operations](/api/payments/wallet)
+- [Get User](/api/users/get-user)
+- [Update User](/api/users/update-user)

@@ -1,0 +1,121 @@
+---
+title: 'Overview'
+description: 'Learn about the requester role and capabilities in Servineo'
+icon: 'user'
+---
+
+## What is a Requester?
+
+As a requester in Servineo, you can search for professional service providers (fixers), book appointments, manage payments, and rate services. The platform connects you with skilled professionals across various categories.
+
+<CardGroup cols={2}>
+  <Card title="Find Services" icon="magnifying-glass" href="/requesters/finding-services">
+    Search and filter through available fixers by category, location, rating, and price
+  </Card>
+  <Card title="Book Appointments" icon="calendar-check" href="/requesters/booking-appointments">
+    Schedule virtual or in-person appointments with fixers
+  </Card>
+  <Card title="Manage Payments" icon="wallet" href="/requesters/payments">
+    Handle payments securely through various methods
+  </Card>
+  <Card title="Rate & Review" icon="star" href="/requesters/rating-reviews">
+    Share your experience and help others make informed decisions
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Advanced Search & Filtering
+
+Find the perfect fixer for your needs using our comprehensive search system:
+
+- **Category Filters**: Browse by service tags and categories
+- **Location-based**: Filter by city and proximity
+- **Rating System**: View fixers rated from 1.0 to 5.0 stars
+- **Price Ranges**: Find services within your budget
+- **Date Availability**: Check fixer availability before booking
+
+### Appointment Management
+
+Book and manage appointments seamlessly:
+
+- **Virtual or In-Person**: Choose your preferred appointment type
+- **Real-time Availability**: See available time slots instantly
+- **Appointment Tracking**: Monitor your upcoming and past appointments
+- **Rescheduling**: Modify appointments when needed
+
+### Secure Payments
+
+Multiple payment options for your convenience:
+
+- QR code payments
+- Digital wallet integration
+- Transaction history
+- Invoice management
+
+### Rating System
+
+Help build trust in the community:
+
+- Rate fixers from 1 to 3 stars
+- Leave detailed comments
+- View ratings from other requesters
+
+## Getting Started
+
+<Steps>
+  <Step title="Create Your Account">
+    Register as a requester and complete your profile with contact information
+  </Step>
+  <Step title="Search for Services">
+    Use the advanced search to find fixers that match your requirements
+  </Step>
+  <Step title="Book an Appointment">
+    Select a time slot and provide job details
+  </Step>
+  <Step title="Complete the Service">
+    Meet with the fixer and complete the service
+  </Step>
+  <Step title="Rate Your Experience">
+    Leave a rating and review to help other requesters
+  </Step>
+</Steps>
+
+## User Profile
+
+Your requester profile contains:
+
+- **Personal Information**: Name, email, and phone number
+- **Location**: Your registered address and coordinates
+- **Appointment History**: Past and upcoming appointments
+- **Payment Methods**: Saved payment preferences
+- **Security**: Two-factor authentication support via Google Authenticator
+
+<Note>
+  Keep your contact information up-to-date to ensure fixers can reach you for appointment confirmations.
+</Note>
+
+## API Integration
+
+For developers integrating with Servineo, the requester functionality is available through our API:
+
+```typescript
+import { getUserLocation } from '@/services/job-requests';
+
+// Get user location
+const location = await getUserLocation(token);
+// Returns: { lat: number, lng: number }
+```
+
+Reference: `src/services/job-requests.ts:4`
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Finding Services" icon="search" href="/requesters/finding-services">
+    Learn how to search and filter services effectively
+  </Card>
+  <Card title="Booking Appointments" icon="calendar" href="/requesters/booking-appointments">
+    Understand the appointment booking process
+  </Card>
+</CardGroup>

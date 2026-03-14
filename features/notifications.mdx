@@ -1,0 +1,436 @@
+---
+title: 'Notification System'
+description: 'Real-time notification system with multi-channel support and role-based filtering'
+icon: 'bell'
+---
+
+## Overview
+
+Servineo features a comprehensive notification system that supports multiple notification channels (WhatsApp, Email, Appointments, Wallet), real-time updates, offline support, and role-based filtering. The system is built with performance and user experience in mind.
+
+## Notification Types
+
+<CardGroup cols={3}>
+  <Card title="WhatsApp" icon="whatsapp" color="#25D366">
+    Direct messaging notifications via WhatsApp
+  </Card>
+  <Card title="Email" icon="envelope">
+    Email notifications for important updates
+  </Card>
+  <Card title="Appointments" icon="calendar-check">
+    Scheduling and appointment reminders
+  </Card>
+  <Card title="Wallet" icon="wallet">
+    Balance updates and transaction notifications
+  </Card>
+  <Card title="Job Offers" icon="briefcase">
+    New job offer and promotion alerts
+  </Card>
+  <Card title="Unread" icon="circle-dot">
+    Quick access to unread notifications
+  </Card>
+</CardGroup>
+
+## Data Structure
+
+The notification interface supports multiple formats:
+
+```typescript NotificationSystem.tsx
+interface INotification {
+  _id: string;
+  appointment_id?: string;
+  recipient_phone?: string;
+  notification_type?: 'whatsapp' | 'email' | 'citas' | 'ofertas' | 'billetera';
+  message_content?: string;
+  send_status?: string;
+  error_details?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  users_id?: string;
+  tipo?: string;
+  estado?: string;
+  creado?: string;
+  siguiente?: string;
+  saldo?: number;
+  leido?: boolean;
+  action_url?: string; // URL for notification action
+}
+
+type NotificationType = 
+  | 'todos' 
+  | 'whatsapp' 
+  | 'email' 
+  | 'citas' 
+  | 'ofertas_promociones' 
+  | 'billetera' 
+  | 'no_leidas';
+```
+
+## Core Features
+
+### Real-Time Polling
+
+The system polls for new notifications every 5 seconds:
+
+```typescript
+const POLLING_INTERVAL = 5000; // 5 seconds
+
+useEffect(() => {
+  if (!isAuthenticated || !userId || !isOpen) return;
+
+  // Initial fetch
+  fetchNotifications(filter, 1, false);
+
+  // Set up polling interval
+  const intervalId = setInterval(() => {
+    fetchUnreadCount();
+  }, POLLING_INTERVAL);
+
+  return () => clearInterval(intervalId);
+}, [isOpen, filter, isAuthenticated, userId]);
+```
+
+### Role-Based Filtering
+
+Notifications are filtered based on user role (Fixer vs Requester):
+
+```typescript
+const filterNotificationsByRole = (
+  notifications: INotification[],
+  role: 'fixer' | 'requester'
+): INotification[] =>
+  notifications.filter((notification) => {
+    const tipoLower = notification.tipo?.trim().toLowerCase();
+
+    if (role === 'requester') {
+      // Requesters don't see wallet/balance notifications
+      return !isSaldoNotification(notification) && notification.saldo === undefined;
+    }
+
+    if (tipoLower === 'desconexion 2 dias') {
+      return false; // Filter out disconnection warnings
+    }
+
+    return true;
+  });
+
+const isSaldoNotification = (notification: INotification): boolean => {
+  const tipoLower = notification.tipo?.toLowerCase() ?? '';
+  return tipoLower.includes('saldo');
+};
+```
+
+<Note>
+Fixers see wallet/balance notifications, while requesters only see job-related notifications.
+</Note>
+
+### Offline Support
+
+The notification system works offline using localStorage caching:
+
+<CodeGroup>
+```typescript Cache Management
+const storageKey = (key: string) => `notifications_${userId}_${key}`;
+
+// Load cached notifications on mount
+useEffect(() => {
+  const cached = localStorage.getItem(storageKey('cached_notifications'));
+  if (cached) {
+    try {
+      const cachedData: INotification[] = JSON.parse(cached);
+      const sanitized = filterNotificationsByRole(cachedData, userRole);
+      setNotifications(sanitized);
+    } catch (e) {
+      console.error('Error loading cached notifications:', e);
+    }
+  }
+}, [userId]);
+
+// Save to cache after successful fetch
+useEffect(() => {
+  if (notifications.length > 0) {
+    localStorage.setItem(
+      storageKey('cached_notifications'), 
+      JSON.stringify(notifications)
+    );
+  }
+}, [notifications]);
+```
+
+```typescript Offline Queue
+const [pendingSync, setPendingSync] = useState<INotification[]>([]);
+
+const syncPendingNotifications = useCallback(async () => {
+  if (pendingSync.length === 0) return;
+
+  const currentPending = [...pendingSync];
+  setPendingSync([]);
+
+  try {
+    for (const notification of currentPending) {
+      await fetch(`${NOTIFICATIONS_API_URL}/mark-read`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notification),
+      });
+    }
+  } catch (err) {
+    console.error('Error syncing notifications:', err);
+    setPendingSync((prev) => [...prev, ...currentPending]);
+  }
+}, [pendingSync]);
+
+// Sync when back online
+useEffect(() => {
+  if (isOnline && pendingSync.length > 0) {
+    syncPendingNotifications();
+  }
+}, [isOnline, syncPendingNotifications]);
+```
+</CodeGroup>
+
+### Read/Unread Tracking
+
+The system tracks read notifications locally and syncs with the server:
+
+```typescript
+const [readNotifications, setReadNotifications] = useState<Set<string>>(new Set());
+
+// Load read status from localStorage
+useEffect(() => {
+  const savedRead = localStorage.getItem(storageKey('read_notifications'));
+  if (savedRead) {
+    try {
+      const readIds = JSON.parse(savedRead);
+      setReadNotifications(new Set(readIds));
+    } catch (e) {
+      console.error('Error loading read notifications:', e);
+    }
+  }
+}, [userId]);
+
+// Calculate unread count
+const unreadCount = notifications.filter(
+  (n) => !(n.leido || readNotifications.has(n._id))
+).length;
+
+// Mark notification as read
+const markAsRead = (notificationId: string) => {
+  setReadNotifications((prev) => {
+    const updated = new Set(prev);
+    updated.add(notificationId);
+    
+    // Save to localStorage
+    localStorage.setItem(
+      storageKey('read_notifications'),
+      JSON.stringify(Array.from(updated))
+    );
+    
+    return updated;
+  });
+};
+```
+
+## Pagination
+
+Infinite scroll pagination for loading more notifications:
+
+```typescript
+const NOTIFICATIONS_PER_PAGE = 20;
+const [page, setPage] = useState(1);
+const [hasMore, setHasMore] = useState(true);
+const [loadingMore, setLoadingMore] = useState(false);
+
+const loadMore = useCallback(() => {
+  if (loadingMore || !hasMore) return;
+  fetchNotifications(filter, page + 1, true);
+}, [filter, page, loadingMore, hasMore]);
+
+// Intersection Observer for infinite scroll
+const observerRef = useRef<IntersectionObserver | null>(null);
+
+useEffect(() => {
+  const sentinel = document.getElementById('notification-sentinel');
+  if (!sentinel) return;
+
+  observerRef.current = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore) {
+        loadMore();
+      }
+    },
+    { threshold: 0.5 }
+  );
+
+  observerRef.current.observe(sentinel);
+
+  return () => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+  };
+}, [hasMore, loadingMore, loadMore]);
+```
+
+## UI Components
+
+### Notification Badge
+
+```tsx
+<button
+  onClick={() => setIsOpen(!isOpen)}
+  className='relative p-2 rounded-full hover:bg-gray-100 transition-colors'
+  aria-label='Notifications'
+>
+  <BellIcon className='w-6 h-6 text-gray-700' />
+  
+  {unreadCount > 0 && (
+    <span className='absolute -top-1 -right-1 bg-red-500 text-white text-xs 
+                     font-bold rounded-full w-5 h-5 flex items-center 
+                     justify-center animate-pulse'>
+      {unreadCount > 99 ? '99+' : unreadCount}
+    </span>
+  )}
+</button>
+```
+
+### Filter Tabs
+
+```tsx
+const filterOptions: { key: NotificationType; label: string; icon: string }[] = [
+  { key: 'todos', label: 'Todos', icon: '📋' },
+  { key: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+  { key: 'email', label: 'Email', icon: '📧' },
+  { key: 'citas', label: 'Citas', icon: '📅' },
+  { key: 'ofertas_promociones', label: 'Ofertas', icon: '🎁' },
+  { key: 'billetera', label: 'Billetera', icon: '💰' },
+  { key: 'no_leidas', label: 'No leídas', icon: '🔴' },
+];
+
+<div className='flex gap-2 overflow-x-auto pb-2'>
+  {filterOptions.map((option) => (
+    <button
+      key={option.key}
+      onClick={() => setFilter(option.key)}
+      className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap 
+                  transition-colors ${
+        filter === option.key
+          ? 'bg-primary text-white'
+          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+      }`}
+    >
+      <span className='mr-2'>{option.icon}</span>
+      {option.label}
+    </button>
+  ))}
+</div>
+```
+
+### Skeleton Loader
+
+```tsx SkeletonLoader
+const SkeletonLoader = () => (
+  <div className="p-4 space-y-4">
+    {[1, 2, 3].map((i) => (
+      <div key={i} className="animate-pulse">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 w-2 h-2 rounded-full bg-gray-300 mt-2"></div>
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="h-4 bg-gray-300 rounded w-20"></div>
+              <div className="h-3 bg-gray-300 rounded w-16"></div>
+            </div>
+            <div className="h-4 bg-gray-300 rounded w-full"></div>
+            <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+```
+
+## Notification Panel
+
+The main notification dropdown panel:
+
+```tsx
+{isOpen && (
+  <div className='absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl 
+                  border border-gray-200 z-50 max-h-[600px] flex flex-col'>
+    {/* Header */}
+    <div className='p-4 border-b border-gray-200'>
+      <div className='flex items-center justify-between mb-4'>
+        <h3 className='text-lg font-bold text-gray-800'>Notificaciones</h3>
+        <button
+          onClick={() => setIsOpen(false)}
+          className='text-gray-500 hover:text-gray-700'
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className='flex gap-2 overflow-x-auto'>
+        {/* Filter buttons */}
+      </div>
+    </div>
+
+    {/* Notifications List */}
+    <div className='flex-1 overflow-y-auto'>
+      {loading && <SkeletonLoader />}
+      
+      {!loading && notifications.length === 0 && (
+        <div className='p-8 text-center text-gray-500'>
+          <BellIcon className='w-12 h-12 mx-auto mb-3 opacity-30' />
+          <p>No hay notificaciones</p>
+        </div>
+      )}
+
+      {notifications.map((notification) => (
+        <NotificationItem
+          key={notification._id}
+          notification={notification}
+          isRead={notification.leido || readNotifications.has(notification._id)}
+          onMarkAsRead={() => markAsRead(notification._id)}
+        />
+      ))}
+
+      {/* Infinite scroll sentinel */}
+      <div id='notification-sentinel' className='h-4' />
+      
+      {loadingMore && <div className='p-4 text-center'>Cargando más...</div>}
+    </div>
+  </div>
+)}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Performance" icon="gauge-high">
+    Use debouncing and pagination to handle large notification lists efficiently
+  </Card>
+  <Card title="Offline-First" icon="wifi-slash">
+    Cache notifications locally and sync when connection is restored
+  </Card>
+  <Card title="User Context" icon="user">
+    Filter notifications by user role to show only relevant content
+  </Card>
+  <Card title="Real-Time Updates" icon="rotate">
+    Poll for new notifications while maintaining good UX with skeleton loaders
+  </Card>
+</CardGroup>
+
+## Configuration
+
+Ensure your environment variables are set:
+
+```bash .env.local
+NEXT_PUBLIC_API_URL=https://api.servineo.com/api
+```
+
+## Related Documentation
+
+- [User Roles](/api/users/user-roles)
+- [Authentication](/features/authentication)

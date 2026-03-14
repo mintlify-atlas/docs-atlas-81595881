@@ -1,0 +1,434 @@
+---
+title: 'Calendar & Scheduling'
+description: 'Manage your availability and customer appointments'
+icon: 'calendar'
+---
+
+## Calendar Overview
+
+The calendar system allows fixers to manage their availability, schedule appointments with customers, and control when they can accept jobs.
+
+<Note>
+The calendar supports both desktop and mobile views with different interaction patterns optimized for each platform.
+</Note>
+
+## Accessing the Calendar
+
+Navigate to the calendar page at `/calendar`:
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:19-45
+export default function CalendarPage() {
+  const [fixer_id, setFixerId] = useState<string>('');
+  const [requester_id, setRequesterId] = useState<string>('');
+  const [userRole, setUserRole] = useState<'requester' | 'fixer'>('requester');
+  
+  // Load data from sessionStorage
+  useEffect(() => {
+    const storedFixerId = sessionStorage.getItem('fixer_id');
+    const storedRequesterId = sessionStorage.getItem('requester_id');
+    const storedRoleUser = sessionStorage.getItem('roluser');
+    
+    if (storedFixerId) {
+      setFixerId(storedFixerId);
+      setRequesterId(storedRequesterId || '');
+      setUserRole(storedRoleUser === 'fixer' ? 'fixer' : 'requester');
+      setIsLoading(false);
+    } else {
+      router.push('/');
+    }
+  }, [router]);
+  
+  // ...
+}
+```
+
+<Warning>
+You must have a valid fixer_id in session storage to access the calendar.
+</Warning>
+
+## Calendar Views
+
+The calendar provides multiple view modes:
+
+### Desktop View
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:227-229
+<div className='flex justify-center md:block'>
+  <DesktopCalendar />
+</div>
+```
+
+The desktop view includes:
+- **Month View**: See appointments across the entire month
+- **Week View**: Focus on a single week's schedule
+- **Day View**: Detailed hourly breakdown of a single day
+
+### Mobile View
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:231-240
+<div className='flex flex-col md:hidden justify-center gap-4'>
+  <MobileCalendar selectedDate={selectedDate} onSelectDate={handleDataChange} />
+  <div></div>
+  <MobileList
+    selectedDate={selectedDate}
+    fixerId={fixer_id}
+    requesterId={requester_id}
+    onDateChange={handleDataChange}
+  />
+</div>
+```
+
+Mobile view includes:
+- Compact calendar picker
+- List view of appointments for selected date
+
+## Role Switching
+
+Fixers can switch between fixer and requester views:
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:57-59
+const switchRole = () => {
+  setUserRole((prevRole) => (prevRole === 'requester' ? 'fixer' : 'requester'));
+};
+```
+
+**Switch Button:**
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:192-197
+<button
+  onClick={switchRole}
+  className='w-full bg-green-700 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors'
+>
+  {t('buttons.currentView', { role: userRole })}
+</button>
+```
+
+<Tip>
+Switching to requester view lets you see how customers view your calendar and availability.
+</Tip>
+
+## Managing Availability
+
+As a fixer, you can control when you're available for appointments:
+
+### Opening the Availability Modal
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:61-63
+const handleOpenAvailabilityModal = () => {
+  modeModalRef.current?.open();
+};
+```
+
+**Availability Button (Desktop):**
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:210-215
+<button
+  className='bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors'
+  onClick={handleOpenAvailabilityModal}
+>
+  {t('buttons.modifyAvailability')}
+</button>
+```
+
+**Availability Button (Mobile):**
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:178-183
+<button
+  className='flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors text-sm'
+  onClick={handleOpenAvailabilityModal}
+>
+  {t('buttons.modifyAvailability')}
+</button>
+```
+
+### Availability Modal Component
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:242
+<ModeSelectionModal ref={modeModalRef} fixerId={fixer_id} />
+```
+
+<Note>
+The availability modal allows you to set specific hours when you're available for appointments.
+</Note>
+
+## Canceling Appointments
+
+Fixers can cancel appointments for specific days:
+
+### Opening Cancel Modal
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:65-71
+const openCancelModal = () => {
+  setIsCancelModalOpen(true);
+};
+
+const closeCancelModal = () => {
+  setIsCancelModalOpen(false);
+};
+```
+
+**Cancel Button (Desktop):**
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:216-221
+<button
+  className='bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors'
+  onClick={openCancelModal}
+>
+  {t('buttons.cancelAppointments')}
+</button>
+```
+
+**Cancel Modal:**
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:244-248
+<CancelDaysAppointments
+  isOpen={isCancelModalOpen}
+  onClose={closeCancelModal}
+  fixer_id={fixer_id}
+/>
+```
+
+<Warning>
+Canceling appointments should be done carefully as it affects customer bookings. Always provide adequate notice when possible.
+</Warning>
+
+## Appointment Data Management
+
+The calendar uses custom hooks to manage appointment data:
+
+### Six Months Appointments Hook
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:73-82
+const {
+  isHourBookedFixer,
+  isHourBooked,
+  isEnabled,
+  isCanceled,
+  refetch: refetchSixMonths,
+  refetchHour,
+  loading,
+} = useSixMonthsAppointments(fixer_id, today);
+```
+
+This hook provides:
+- `isHourBookedFixer`: Check if fixer has bookings for specific hours
+- `isHourBooked`: Check if a customer has booked a time slot
+- `isEnabled`: Check if fixer is available at a specific time
+- `isCanceled`: Check if an appointment is canceled
+- `refetch`: Reload appointment data
+- `loading`: Loading state
+
+### Daily Appointments Hook
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:84
+const { getAppointmentsForDay, refetch: refetchConts } = useDailyConts({ date: today, fixer_id });
+```
+
+Provides:
+- `getAppointmentsForDay`: Get all appointments for a specific day
+- `refetch`: Reload daily appointments
+
+### Refetch All Data
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:86-89
+const refetchAll = useCallback(() => {
+  refetchSixMonths();
+  refetchConts();
+}, [refetchSixMonths, refetchConts]);
+```
+
+## Context Providers
+
+The calendar uses multiple context providers for state management:
+
+### User Role Provider
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:123
+<UserRoleProvider role={userRole} fixer_id={fixer_id} requester_id={requester_id}>
+```
+
+Provides access to:
+- Current user role (fixer or requester)
+- Fixer ID
+- Requester ID
+
+### Appointments Provider
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:124-133
+<AppointmentsProvider
+  isHourBookedFixer={providerValue.isHourBookedFixer}
+  isHourBooked={providerValue.isHourBooked}
+  isEnabled={providerValue.isEnabled}
+  isCanceled={providerValue.isCanceled}
+  getAppointmentsForDay={providerValue.getAppointmentsForDay}
+  refetchAll={providerValue.refetchAll}
+  refetchHour={providerValue.refetchHour}
+  loading={providerValue.loading}
+>
+```
+
+Provides appointment state and actions to all child components.
+
+### Appointments Status Provider
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:134-138
+<AppointmentsStatusProvider
+  fixerId={fixer_id}
+  requesterId={requester_id}
+  selectedDate={selectedDate}
+>
+```
+
+Tracks the status of appointments for the selected date.
+
+## Date Selection
+
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:53-55
+const handleDataChange = (newDate: Date) => {
+  setSelectedDate(newDate);
+};
+```
+
+When a user selects a different date:
+1. The `selectedDate` state is updated
+2. All date-dependent components re-render
+3. Appointment data is fetched for the new date
+
+## Calendar Header
+
+The header shows different titles based on the user role:
+
+**Fixer View:**
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:163-167
+{userRole === 'fixer' && (
+  <h2 className='text-black p-4 text-xl text-center flex-1'>
+    {t('titles.myCalendar')}
+  </h2>
+)}
+```
+
+**Requester View:**
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:168-172
+{userRole === 'requester' && (
+  <h2 className='text-black p-4 text-xl text-center flex-1'>
+    {t('titles.fixerCalendar', { fixerName: 'Juan Carlos Peréz' })}
+  </h2>
+)}
+```
+
+## Mobile vs Desktop Controls
+
+Controls are rendered differently for mobile and desktop:
+
+**Mobile Controls:**
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:175-198
+<div className='flex flex-col md:hidden gap-2 px-4 pb-4'>
+  {userRole === 'fixer' && (
+    <div className='flex gap-2'>
+      <button className='flex-1 bg-blue-500'>
+        {t('buttons.modifyAvailability')}
+      </button>
+      <button className='flex-1 bg-red-500'>
+        {t('buttons.cancelAppointments')}
+      </button>
+    </div>
+  )}
+  <button className='w-full bg-green-700'>
+    {t('buttons.currentView', { role: userRole })}
+  </button>
+</div>
+```
+
+**Desktop Controls:**
+```typescript
+// Location: src/app/[locale]/calendar/page.tsx:200-224
+<div className='hidden md:flex md:items-center md:ml-auto md:mr-4 md:gap-4'>
+  <button className='bg-green-700'>
+    {t('buttons.currentView', { role: userRole })}
+  </button>
+  
+  {userRole === 'fixer' && (
+    <div className='flex items-center gap-2'>
+      <button className='bg-blue-500'>
+        {t('buttons.modifyAvailability')}
+      </button>
+      <button className='bg-red-500'>
+        {t('buttons.cancelAppointments')}
+      </button>
+    </div>
+  )}
+</div>
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Keep Availability Current" icon="clock">
+    Update your availability regularly to reflect your actual schedule
+  </Card>
+  
+  <Card title="Minimize Cancellations" icon="x-circle">
+    Try to honor scheduled appointments to maintain good ratings
+  </Card>
+  
+  <Card title="Use Both Views" icon="eye">
+    Switch to requester view periodically to see how customers see your calendar
+  </Card>
+  
+  <Card title="Plan Ahead" icon="calendar-days">
+    Set your availability for several weeks in advance
+  </Card>
+</CardGroup>
+
+## Common Workflows
+
+<Steps>
+  <Step title="Setting Weekly Availability">
+    1. Open the calendar
+    2. Click "Modify Availability"
+    3. Set your available hours for each day of the week
+    4. Save your changes
+  </Step>
+  
+  <Step title="Viewing Today's Appointments">
+    1. Calendar defaults to today's date
+    2. View appointments in the day view
+    3. Click on appointments for details
+  </Step>
+  
+  <Step title="Canceling a Day">
+    1. Click "Cancel Appointments"
+    2. Select the date(s) to cancel
+    3. Confirm the cancellation
+    4. Customers will be notified
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Job Offers" icon="briefcase" href="/fixers/managing-jobs">
+    Learn how to create and manage your service offerings
+  </Card>
+  
+  <Card title="Payments" icon="wallet" href="/fixers/payments-wallet">
+    Understand how to receive payments and manage earnings
+  </Card>
+</CardGroup>

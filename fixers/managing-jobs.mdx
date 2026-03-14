@@ -1,0 +1,464 @@
+---
+title: 'Managing Job Offers'
+description: 'Create, edit, and manage your service job offerings'
+icon: 'briefcase'
+---
+
+## Job Offers Overview
+
+Job offers are your service listings that customers can browse and request. Each offer includes details about the service, pricing, photos, and contact information.
+
+<Note>
+You can create multiple job offers to showcase different services or pricing tiers.
+</Note>
+
+## Accessing Job Offers
+
+Access your job offers through the Fixer Dashboard:
+
+```typescript
+// Location: src/app/[locale]/fixer/dashboard/page.tsx:277-287
+<button
+  onClick={() => setActiveTab('offers')}
+  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+    activeTab === 'offers'
+      ? 'bg-blue-50 text-blue-700 shadow-sm'
+      : 'text-gray-600 hover:bg-gray-50'
+  }`}
+>
+  <Briefcase className='h-5 w-5' />
+  Ofertas de Trabajo
+</button>
+```
+
+## Creating a New Job Offer
+
+<Steps>
+  <Step title="Open Creation Modal">
+    Click the "New Offer" button to open the job offer form:
+    
+    ```typescript
+    // Location: src/Components/fixer/dashboard/JobOffersSection.tsx:329-336
+    <PillButton
+      onClick={() => handleOpenModal()}
+      className='bg-primary text-white hover:bg-blue-800 flex items-center gap-2'
+    >
+      <Plus className='h-4 w-4' />
+      {t('buttons.newOffer')}
+    </PillButton>
+    ```
+  </Step>
+  
+  <Step title="Fill in Job Details">
+    Complete the required fields:
+    
+    **Title:**
+    ```typescript
+    // Location: src/Components/fixer/dashboard/JobOffersSection.tsx:392-402
+    <div>
+      <label className='block text-sm font-medium text-gray-700 mb-1'>
+        {t('form.title.label')}
+      </label>
+      <input
+        {...register('title')}
+        className='w-full rounded-lg border-primary border focus:outline-none py-2 px-3'
+        placeholder={t('form.title.placeholder')}
+      />
+    </div>
+    ```
+    
+    **Category:**
+    Select from predefined job categories:
+    ```typescript
+    // Location: src/Components/fixer/dashboard/JobOffersSection.tsx:406-424
+    <select
+      {...register('category')}
+      className='w-full rounded-lg border-primary border focus:outline-none py-2 px-3 bg-white'
+    >
+      <option value=''>{t('form.category.select')}</option>
+      {jobCategories.map((cat) => (
+        <option key={cat.value} value={cat.value}>
+          {cat.label}
+        </option>
+      ))}
+    </select>
+    ```
+  </Step>
+  
+  <Step title="Add Tags">
+    Tags help customers find your services. You can add up to 5 tags:
+    
+    ```typescript
+    // Location: src/Components/fixer/dashboard/JobOffersSection.tsx:99-108
+    const handleAddTag = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const value = e.target.value;
+      if (!value) return;
+      
+      if (!currentTags.includes(value) && currentTags.length < 5) {
+        setValue('tags', [...currentTags, value], { shouldValidate: true });
+      }
+      
+      e.target.value = '';
+    };
+    ```
+    
+    **Removing Tags:**
+    ```typescript
+    // Location: src/Components/fixer/dashboard/JobOffersSection.tsx:110-113
+    const removeTag = (tagToRemove: string) => {
+      const newTags = currentTags.filter((t) => t !== tagToRemove);
+      setValue('tags', newTags, { shouldValidate: true });
+    };
+    ```
+    
+    <Tip>
+    Choose tags that accurately describe your service to improve discoverability.
+    </Tip>
+  </Step>
+  
+  <Step title="Upload Photos">
+    Add up to 5 photos showcasing your work:
+    
+    ```typescript
+    // Location: src/Components/fixer/dashboard/JobOffersSection.tsx:115-132
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      if (selectedImages.length + files.length > 5) {
+        showNotify('warning', t('notifications.imageLimit'), t('notifications.imageLimitMessage'));
+        return;
+      }
+      const newFiles: File[] = [];
+      files.forEach((file) => {
+        if (file.size > 5 * 1024 * 1024) {
+          showNotify('error', t('notifications.imageTooBig'), 
+            t('notifications.imageSizeMessage').replace('{fileName}', file.name));
+        } else {
+          newFiles.push(file);
+        }
+      });
+      const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+      setSelectedImages((prev) => [...prev, ...newFiles]);
+      setPreviewUrls((prev) => [...prev, ...newPreviews]);
+    };
+    ```
+    
+    **Image Requirements:**
+    - Maximum 5 images per offer
+    - Maximum file size: 5 MB per image
+    - Supported formats: Common image types (JPG, PNG, etc.)
+    
+    <Warning>
+    At least one image is required when creating a new job offer.
+    </Warning>
+  </Step>
+  
+  <Step title="Set Price and Location">
+    Define your pricing and service area:
+    
+    ```typescript
+    // Location: src/Components/fixer/dashboard/JobOffersSection.tsx:498-530
+    <div className='grid grid-cols-2 gap-4'>
+      <div>
+        <label className='block text-sm font-medium text-gray-700 mb-1'>
+          {t('form.price.label')}
+        </label>
+        <input
+          type='number'
+          {...register('price')}
+          className='w-full rounded-lg border-primary border focus:outline-none py-2 px-3'
+        />
+      </div>
+      <div>
+        <label className='block text-sm font-medium text-gray-700 mb-1'>
+          {t('form.city.label')}
+        </label>
+        <select
+          {...register('city')}
+          className='w-full rounded-lg border-primary border focus:outline-none py-2 px-3 bg-white'
+        >
+          {boliviaCities.map((city) => (
+            <option key={city.value} value={city.value}>
+              {city.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+    ```
+  </Step>
+  
+  <Step title="Submit the Offer">
+    Click "Save" to create your job offer:
+    
+    ```typescript
+    // Location: src/Components/fixer/dashboard/JobOffersSection.tsx:182-216
+    const onSubmit = async (data: JobOfferFormData) => {
+      if (!user?._id) return showNotify('error', t('notifications.error'), t('notifications.noUser'));
+      
+      if (!editingOffer && selectedImages.length === 0) {
+        return showNotify('warning', t('notifications.imageLimit'), t('notifications.noImages'));
+      }
+      
+      try {
+        const formData = new FormData();
+        formData.append('fixerId', user._id);
+        formData.append('fixerName', user.name || 'Usuario');
+        formData.append('title', data.title);
+        formData.append('description', data.description);
+        formData.append('category', data.category);
+        formData.append('price', data.price.toString());
+        formData.append('city', data.city);
+        formData.append('contactPhone', data.contactPhone);
+        formData.append('tags', JSON.stringify(data.tags));
+        formData.append('rating', editingOffer ? editingOffer.rating.toString() : '5');
+        
+        selectedImages.forEach((file) => formData.append('photos', file));
+        
+        if (editingOffer) {
+          await updateJob({ jobId: editingOffer._id, formData }).unwrap();
+          showNotify('success', t('notifications.updated'), t('notifications.updateSuccess'));
+        } else {
+          await createJob(formData).unwrap();
+          showNotify('success', t('notifications.published'), t('notifications.createSuccess'));
+        }
+        handleCloseModal();
+      } catch (error: unknown) {
+        console.error(error);
+        showNotify('error', t('notifications.error'), t('notifications.errorMessage'));
+      }
+    };
+    ```
+  </Step>
+</Steps>
+
+## Editing Existing Offers
+
+Click the edit icon on any job offer card to modify it:
+
+```typescript
+// Location: src/Components/fixer/dashboard/JobOffersSection.tsx:142-172
+const handleOpenModal = (offer?: IJobOffer) => {
+  if (readOnly) return;
+  
+  if (offer) {
+    setEditingOffer(offer);
+    setValue('title', offer.title);
+    setValue('description', offer.description);
+    setValue('category', offer.category);
+    setValue('price', offer.price);
+    setValue('city', offer.city);
+    setValue('contactPhone', offer.contactPhone);
+    setValue('tags', offer.tags && offer.tags.length > 0 ? offer.tags : [offer.category]);
+    
+    setPreviewUrls(offer.photos || []);
+    setSelectedImages([]);
+  } else {
+    // Reset form for new offer
+    setEditingOffer(null);
+    reset(/* default values */);
+    setPreviewUrls([]);
+    setSelectedImages([]);
+  }
+  setIsModalOpen(true);
+};
+```
+
+## Managing Offer Status
+
+### Activate/Deactivate Offers
+
+Toggle the active status of your offers:
+
+```typescript
+// Location: src/Components/fixer/dashboard/JobOffersSection.tsx:252-263
+const handleToggleActive = async (jobId: string) => {
+  try {
+    await toggleJobStatus({ jobId }).unwrap();
+    const result = await refetch();
+    console.log('Refetch result:', result);
+    showNotify('success', t('notifications.statusChanged'), t('notifications.statusChangedSuccess'));
+  } catch (err) {
+    console.error('Error toggling status:', err);
+    showNotify('error', t('notifications.error'), t('notifications.statusChangeError'));
+  }
+};
+```
+
+### Filter by Status
+
+Filter your offers by active or inactive status:
+
+```typescript
+// Location: src/Components/fixer/dashboard/JobOffersSection.tsx:299-304
+const filteredOffers = apiOffers?.filter((offer) => {
+  if (statusFilter === 'all') return true;
+  const isActive = offer.status ?? true;
+  return statusFilter === 'active' ? isActive : !isActive;
+}) || [];
+```
+
+**Filter Options:**
+```typescript
+// Location: src/Components/fixer/dashboard/JobOffersSection.tsx:317-327
+<select
+  value={statusFilter}
+  onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+  className='appearance-none bg-white border border-gray-300 rounded-full px-4 py-2'
+>
+  <option value='all'>{t('filters.all')}</option>
+  <option value='active'>{t('filters.active')}</option>
+  <option value='inactive'>{t('filters.inactive')}</option>
+</select>
+```
+
+## Deleting Job Offers
+
+Delete offers you no longer want to show:
+
+```typescript
+// Location: src/Components/fixer/dashboard/JobOffersSection.tsx:218-229
+const confirmDelete = (jobId: string) => {
+  if (!userId) return;
+  showNotify('warning', t('notifications.deleteTitle'), t('notifications.deleteMessage'), async () => {
+    try {
+      await deleteJob({ jobId, fixerId: userId }).unwrap();
+      setTimeout(() => showNotify('success', t('notifications.deleted'), t('notifications.deleteSuccess')), 300);
+    } catch (error: unknown) {
+      showNotify('error', t('notifications.error'), t('notifications.deleteError'));
+      console.error(error);
+    }
+  });
+};
+```
+
+<Warning>
+Deleting a job offer is permanent and cannot be undone. Consider deactivating it instead if you might want to use it again later.
+</Warning>
+
+## Creating Promotions
+
+Boost specific job offers with promotions:
+
+```typescript
+// Location: src/Components/fixer/dashboard/JobOffersSection.tsx:265-295
+const handleCreatePromo = async (promotion: {
+  title: string;
+  description: string;
+  offerId: string;
+  fixerId: string;
+  price: string;
+}) => {
+  if (!userId) {
+    showNotify('error', t('notifications.error'), t('notifications.noUser'));
+    return;
+  }
+  try {
+    const result = await createPromotion({
+      title: promotion.title,
+      description: promotion.description,
+      offerId: promotion.offerId,
+      price: promotion.price,
+      fixerId: promotion.fixerId,
+    });
+    
+    if (result) {
+      setIsCreatePromoModalOpen(false);
+      setSelectedOfferId('');
+      showNotify('success', t('notifications.promoCreated'), t('notifications.promoCreatedSuccess'));
+      await refetch();
+    }
+  } catch (error) {
+    console.error('Error creating promotion:', error);
+    showNotify('error', t('notifications.error'), t('notifications.promoCreateError'));
+  }
+};
+```
+
+## Job Offer Display
+
+Offers are displayed in a responsive grid:
+
+```typescript
+// Location: src/Components/fixer/dashboard/JobOffersSection.tsx:341-375
+<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+  {filteredOffers.map((offer) => (
+    <JobOfferCard
+      key={offer._id}
+      offer={mapToCardData(offer as IJobOffer)}
+      onEdit={
+        !readOnly
+          ? () => handleOpenModal({
+              ...offer,
+              tags: offer.tags || [],
+              _id: offer._id || '',
+            } as IJobOffer)
+          : undefined
+      }
+      onDelete={!readOnly ? () => confirmDelete(offer._id!) : undefined}
+      onToggleActive={!readOnly ? () => handleToggleActive(offer._id!) : undefined}
+      onCreatePromo={
+        !readOnly
+          ? () => {
+              setSelectedOfferId(offer._id);
+              setIsCreatePromoModalOpen(true);
+            }
+          : undefined
+      }
+      readOnly={readOnly}
+      className='h-full'
+    />
+  ))}
+</div>
+```
+
+## Fetching Job Offers
+
+The component uses RTK Query to fetch your offers:
+
+```typescript
+// Location: src/Components/fixer/dashboard/JobOffersSection.tsx:41-50
+const { user } = useAppSelector((state) => state.user);
+const userId = user?._id || '';
+
+const { data: apiOffers, isLoading, refetch } = useGetJobsByFixerQuery(userId, { skip: !userId });
+const [createJob, { isLoading: isCreating }] = useCreateJobMutation();
+const [updateJob, { isLoading: isUpdating }] = useUpdateJobMutation();
+const [deleteJob] = useDeleteJobMutation();
+const [toggleJobStatus] = useToggleJobStatusMutation();
+```
+
+<Note>
+Job offers are automatically refreshed when you create, update, or delete an offer.
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Quality Photos" icon="camera">
+    Use clear, well-lit photos that showcase your best work
+  </Card>
+  
+  <Card title="Accurate Descriptions" icon="file-text">
+    Write detailed descriptions that set clear expectations
+  </Card>
+  
+  <Card title="Competitive Pricing" icon="dollar-sign">
+    Research market rates and price your services competitively
+  </Card>
+  
+  <Card title="Regular Updates" icon="refresh-cw">
+    Keep your offers current and deactivate outdated ones
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Calendar Management" icon="calendar" href="/fixers/calendar-scheduling">
+    Manage your availability and appointments
+  </Card>
+  
+  <Card title="Payment & Earnings" icon="wallet" href="/fixers/payments-wallet">
+    Track your earnings and manage payments
+  </Card>
+</CardGroup>

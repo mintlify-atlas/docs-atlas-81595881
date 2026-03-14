@@ -1,0 +1,458 @@
+---
+title: 'Process Payment'
+description: 'Process payments for completed services'
+api: 'POST /api/payments'
+---
+
+## Overview
+
+Process payment transactions for completed appointments and job requests.
+
+<Note>
+  Payments are typically processed after a service is marked as completed.
+</Note>
+
+## Endpoint
+
+```
+POST /api/payments/process
+```
+
+## Request Body
+
+<ParamField body="appointmentId" type="string" required>
+  The appointment or job request ID
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  Payment amount in local currency
+</ParamField>
+
+<ParamField body="paymentMethod" type="string" required>
+  Payment method: `efectivo`, `qr`, `tarjeta`
+</ParamField>
+
+<ParamField body="requesterId" type="string" required>
+  ID of the user making the payment
+</ParamField>
+
+<ParamField body="fixerId" type="string" required>
+  ID of the fixer receiving payment
+</ParamField>
+
+<ParamField body="paymentDetails" type="object">
+  Additional payment details
+  
+  <Expandable title="Payment Details">
+    <ParamField body="transactionId" type="string">
+      Transaction ID from payment provider (for digital payments)
+    </ParamField>
+    
+    <ParamField body="cardLast4" type="string">
+      Last 4 digits of card (for card payments)
+    </ParamField>
+    
+    <ParamField body="qrReference" type="string">
+      QR payment reference number
+    </ParamField>
+    
+    <ParamField body="notes" type="string">
+      Additional payment notes
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL - Cash Payment
+curl -X POST https://api.servineo.com/api/payments/process \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "appointmentId": "appt123",
+    "amount": 150000,
+    "paymentMethod": "efectivo",
+    "requesterId": "requester456",
+    "fixerId": "fixer123",
+    "paymentDetails": {
+      "notes": "Paid in cash upon completion"
+    }
+  }'
+```
+
+```bash cURL - QR Payment
+curl -X POST https://api.servineo.com/api/payments/process \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "appointmentId": "appt123",
+    "amount": 150000,
+    "paymentMethod": "qr",
+    "requesterId": "requester456",
+    "fixerId": "fixer123",
+    "paymentDetails": {
+      "transactionId": "QR_TXN_789456123",
+      "qrReference": "REF123456"
+    }
+  }'
+```
+
+```bash cURL - Card Payment
+curl -X POST https://api.servineo.com/api/payments/process \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "appointmentId": "appt123",
+    "amount": 150000,
+    "paymentMethod": "tarjeta",
+    "requesterId": "requester456",
+    "fixerId": "fixer123",
+    "paymentDetails": {
+      "transactionId": "ch_1234567890",
+      "cardLast4": "4242"
+    }
+  }'
+```
+
+```typescript TypeScript
+interface ProcessPaymentRequest {
+  appointmentId: string;
+  amount: number;
+  paymentMethod: 'efectivo' | 'qr' | 'tarjeta';
+  requesterId: string;
+  fixerId: string;
+  paymentDetails?: {
+    transactionId?: string;
+    cardLast4?: string;
+    qrReference?: string;
+    notes?: string;
+  };
+}
+
+const processPayment = async (
+  payment: ProcessPaymentRequest
+) => {
+  const response = await fetch(
+    'https://api.servineo.com/api/payments/process',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payment)
+    }
+  );
+  
+  return await response.json();
+};
+
+// Process cash payment
+await processPayment({
+  appointmentId: 'appt123',
+  amount: 150000,
+  paymentMethod: 'efectivo',
+  requesterId: 'requester456',
+  fixerId: 'fixer123',
+  paymentDetails: {
+    notes: 'Paid in cash upon completion'
+  }
+});
+
+// Process QR payment
+await processPayment({
+  appointmentId: 'appt123',
+  amount: 150000,
+  paymentMethod: 'qr',
+  requesterId: 'requester456',
+  fixerId: 'fixer123',
+  paymentDetails: {
+    transactionId: 'QR_TXN_789456123',
+    qrReference: 'REF123456'
+  }
+});
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="paymentId" type="string">
+  Unique payment transaction ID
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Payment status: `pending`, `completed`, `failed`
+</ResponseField>
+
+<ResponseField name="amount" type="number">
+  Payment amount
+</ResponseField>
+
+<ResponseField name="paymentMethod" type="string">
+  Method used for payment
+</ResponseField>
+
+<ResponseField name="appointmentId" type="string">
+  Associated appointment ID
+</ResponseField>
+
+<ResponseField name="requesterId" type="string">
+  Requester ID
+</ResponseField>
+
+<ResponseField name="fixerId" type="string">
+  Fixer ID
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  Payment timestamp
+</ResponseField>
+
+<ResponseField name="receipt" type="object">
+  Receipt information
+  
+  <Expandable title="Receipt Details">
+    <ResponseField name="receiptId" type="string">
+      Receipt number
+    </ResponseField>
+    
+    <ResponseField name="receiptUrl" type="string">
+      URL to downloadable receipt
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Response
+
+```json
+{
+  "paymentId": "pay_123456789",
+  "status": "completed",
+  "amount": 150000,
+  "paymentMethod": "qr",
+  "appointmentId": "appt123",
+  "requesterId": "requester456",
+  "fixerId": "fixer123",
+  "paymentDetails": {
+    "transactionId": "QR_TXN_789456123",
+    "qrReference": "REF123456"
+  },
+  "createdAt": "2024-03-15T12:30:00.000Z",
+  "receipt": {
+    "receiptId": "REC-20240315-001",
+    "receiptUrl": "https://servineo.com/receipts/REC-20240315-001.pdf"
+  }
+}
+```
+
+---
+
+## Update Job Request Status to Paid
+
+After processing payment, update the job request status.
+
+### Endpoint
+
+```
+PATCH /api/jobrequests/{id}
+```
+
+### Request Body
+
+<ParamField body="status" type="string" required>
+  Set to `paid`
+</ParamField>
+
+<ParamField body="paymentId" type="string">
+  Reference to the payment transaction
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X PATCH https://api.servineo.com/api/jobrequests/request123 \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "paid",
+    "paymentId": "pay_123456789"
+  }'
+```
+
+```typescript TypeScript
+const markJobRequestAsPaid = async (
+  requestId: string,
+  paymentId: string
+) => {
+  const response = await fetch(
+    `https://api.servineo.com/api/jobrequests/${requestId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        status: 'paid',
+        paymentId
+      })
+    }
+  );
+  
+  return await response.json();
+};
+```
+
+</CodeGroup>
+
+---
+
+## Payment Flow
+
+### Complete Payment Flow
+
+```typescript
+// 1. Complete the appointment
+await updateAppointment(appointmentId, {
+  schedule_state: 'completed'
+});
+
+// 2. Process the payment
+const payment = await processPayment({
+  appointmentId,
+  amount: agreedPrice,
+  paymentMethod: 'qr',
+  requesterId,
+  fixerId,
+  paymentDetails: {
+    transactionId: qrTransactionId
+  }
+});
+
+// 3. Update job request status
+await markJobRequestAsPaid(jobRequestId, payment.paymentId);
+
+// 4. Send receipt to requester
+await sendReceipt(requesterId, payment.receipt.receiptUrl);
+```
+
+## Payment Status Types
+
+<CardGroup cols={3}>
+  <Card title="Pending" icon="clock">
+    Payment is being processed
+  </Card>
+  <Card title="Completed" icon="check">
+    Payment successfully processed
+  </Card>
+  <Card title="Failed" icon="xmark">
+    Payment failed or rejected
+  </Card>
+</CardGroup>
+
+### Job Request Payment States
+
+```typescript
+type JobRequestStatus = 
+  | 'pending'      // Awaiting acceptance
+  | 'accepted'     // Accepted by fixer
+  | 'in_progress'  // Work in progress
+  | 'completed'    // Work completed
+  | 'paid'         // Payment processed
+  | 'cancelled';   // Request cancelled
+```
+
+## Validation Rules
+
+<AccordionGroup>
+  <Accordion title="Amount Validation">
+    - Amount must be positive
+    - Amount should match agreed price
+    - Verify amount hasn't been altered
+  </Accordion>
+  
+  <Accordion title="Status Validation">
+    - Appointment must be in `completed` state
+    - Cannot pay for cancelled appointments
+    - Cannot process duplicate payments
+  </Accordion>
+  
+  <Accordion title="Authorization">
+    - Only the requester can initiate payment
+    - Payment method must match fixer's accepted methods
+    - Valid authentication required
+  </Accordion>
+</AccordionGroup>
+
+## Error Responses
+
+### Payment Processing Failed (402)
+
+```json
+{
+  "success": false,
+  "error": "Payment processing failed",
+  "details": {
+    "code": "INSUFFICIENT_FUNDS",
+    "message": "Card declined due to insufficient funds"
+  }
+}
+```
+
+### Invalid Appointment Status (400)
+
+```json
+{
+  "success": false,
+  "error": "Cannot process payment for appointment with status: cancelled"
+}
+```
+
+### Payment Already Processed (409)
+
+```json
+{
+  "success": false,
+  "error": "Payment already processed for this appointment",
+  "existingPaymentId": "pay_987654321"
+}
+```
+
+### Payment Method Not Accepted (400)
+
+```json
+{
+  "success": false,
+  "error": "Fixer does not accept payment method: tarjeta"
+}
+```
+
+## Security Considerations
+
+<Warning>
+  **Never expose sensitive payment data:**
+  - Do not log full card numbers
+  - Use tokenization for card payments
+  - Encrypt payment details in transit and at rest
+  - Implement PCI DSS compliance for card handling
+</Warning>
+
+<Info>
+  **Best Practices:**
+  - Verify appointment completion before payment
+  - Send payment confirmation to both parties
+  - Generate and store receipts
+  - Implement fraud detection
+  - Use HTTPS for all payment requests
+</Info>
+
+## Related Endpoints
+
+- [Payment Methods](/api/payments/payment-methods)
+- [Wallet Operations](/api/payments/wallet)
+- [Update Appointment](/api/appointments/update-appointment)

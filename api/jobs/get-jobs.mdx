@@ -1,0 +1,449 @@
+---
+title: 'Get Jobs'
+description: 'Retrieve jobs and job offers'
+api: 'GET /api/jobs'
+---
+
+## Get All Jobs
+
+Retrieve all available jobs in the system.
+
+### Endpoint
+
+```
+GET /api/jobs
+```
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of job objects
+  
+  <Expandable title="Job Object">
+    <ResponseField name="id" type="string">
+      Unique job identifier
+    </ResponseField>
+    
+    <ResponseField name="jobType" type="string">
+      Type of job (e.g., "plomeria", "electricidad")
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      Job description
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/jobs \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { fixerService } from '@/services/fixerService';
+
+const jobs = await fixerService.getJobs();
+console.log(jobs);
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.servineo.com/api/jobs', {
+  method: 'GET',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+const data = await response.json();
+const jobs = data.data;
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "job1",
+      "jobType": "plomeria",
+      "description": "Servicios de plomería residencial y comercial"
+    },
+    {
+      "id": "job2",
+      "jobType": "electricidad",
+      "description": "Instalaciones y reparaciones eléctricas"
+    }
+  ]
+}
+```
+
+---
+
+## Get Jobs with Fixers
+
+Retrieve all jobs along with the fixers who provide each service.
+
+### Endpoint
+
+```
+GET /api/jobs/with-fixers
+```
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates if the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of job objects with associated fixers
+  
+  <Expandable title="JobWithFixers Object">
+    <ResponseField name="jobType" type="string">
+      Type of job/service
+    </ResponseField>
+    
+    <ResponseField name="fixers" type="array">
+      Array of fixer objects who provide this service
+      
+      <Expandable title="Fixer Object">
+        <ResponseField name="id" type="string">
+          Fixer's unique identifier
+        </ResponseField>
+        
+        <ResponseField name="name" type="string">
+          Fixer's full name
+        </ResponseField>
+        
+        <ResponseField name="city" type="string">
+          City where fixer operates
+        </ResponseField>
+        
+        <ResponseField name="rating" type="number">
+          Average rating (0-5)
+        </ResponseField>
+        
+        <ResponseField name="avatar" type="string">
+          URL to profile photo
+        </ResponseField>
+        
+        <ResponseField name="description" type="string">
+          Fixer's bio/description
+        </ResponseField>
+        
+        <ResponseField name="phone" type="string">
+          Contact phone number
+        </ResponseField>
+        
+        <ResponseField name="email" type="string">
+          Contact email
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/jobs/with-fixers \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { fixerService } from '@/services/fixerService';
+
+const jobsWithFixers = await fixerService.getJobsWithFixers();
+console.log(jobsWithFixers);
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "jobType": "plomeria",
+      "fixers": [
+        {
+          "id": "fixer123",
+          "name": "Juan Pérez",
+          "city": "Asunción",
+          "rating": 4.8,
+          "avatar": "https://example.com/photos/juan.jpg",
+          "description": "Plomero con 10 años de experiencia",
+          "phone": "+595981234567",
+          "email": "juan@example.com"
+        },
+        {
+          "id": "fixer456",
+          "name": "María González",
+          "city": "Asunción",
+          "rating": 4.9,
+          "avatar": "https://example.com/photos/maria.jpg",
+          "description": "Especialista en plomería moderna",
+          "phone": "+595981234568",
+          "email": "maria@example.com"
+        }
+      ]
+    },
+    {
+      "jobType": "electricidad",
+      "fixers": [
+        {
+          "id": "fixer789",
+          "name": "Carlos Ramírez",
+          "city": "Asunción",
+          "rating": 4.7,
+          "avatar": "https://example.com/photos/carlos.jpg",
+          "description": "Electricista certificado",
+          "phone": "+595981234569",
+          "email": "carlos@example.com"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## Get Jobs by Fixer
+
+Retrieve all jobs associated with a specific fixer.
+
+### Endpoint
+
+```
+GET /api/fixers/{fixerId}/jobs
+```
+
+### Path Parameters
+
+<ParamField path="fixerId" type="string" required>
+  The unique identifier of the fixer
+</ParamField>
+
+### Response
+
+<ResponseField name="data" type="array">
+  Array of job objects
+  
+  <Expandable title="Job Details">
+    <ResponseField name="_id" type="string">
+      Job unique identifier
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Job title
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      Job description
+    </ResponseField>
+    
+    <ResponseField name="status" type="string">
+      Job status (e.g., "active", "completed")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/fixers/fixer123/jobs \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { getJobsByFixerId } from '@/services/jobs';
+
+const jobs = await getJobsByFixerId('fixer123');
+console.log(jobs);
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "data": [
+    {
+      "_id": "job123",
+      "title": "Reparación de fuga de agua",
+      "description": "Fuga en cañería de cocina",
+      "status": "completed",
+      "createdAt": "2024-03-10T10:00:00.000Z"
+    },
+    {
+      "_id": "job456",
+      "title": "Instalación de grifo nuevo",
+      "description": "Instalar grifo en baño principal",
+      "status": "active",
+      "createdAt": "2024-03-14T14:30:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## Get All Job Offers
+
+Retrieve all job offers posted by fixers.
+
+### Endpoint
+
+```
+GET /api/job-offers
+```
+
+### Response
+
+Array of job offer objects.
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/job-offers \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { useGetAllJobsQuery } from '@/app/redux/services/jobApi';
+
+const { data: jobOffers, isLoading } = useGetAllJobsQuery();
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+[
+  {
+    "_id": "offer123",
+    "fixerId": "fixer123",
+    "title": "Reparaciones de plomería",
+    "description": "Ofrezco servicios de plomería profesional",
+    "category": "plomeria",
+    "price": 150000,
+    "isActive": true,
+    "createdAt": "2024-03-01T10:00:00.000Z"
+  }
+]
+```
+
+---
+
+## Get Job Offers by Fixer
+
+Retrieve all job offers posted by a specific fixer.
+
+### Endpoint
+
+```
+GET /api/job-offers/fixer/{fixerId}
+```
+
+### Path Parameters
+
+<ParamField path="fixerId" type="string" required>
+  The unique identifier of the fixer
+</ParamField>
+
+### Response
+
+<ResponseField name="data" type="array">
+  Array of job offer objects
+</ResponseField>
+
+<ResponseField name="count" type="number">
+  Total number of job offers
+</ResponseField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/job-offers/fixer/fixer123 \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { useGetJobsByFixerQuery } from '@/app/redux/services/jobApi';
+
+const { data: jobOffers } = useGetJobsByFixerQuery('fixer123');
+```
+
+</CodeGroup>
+
+### Example Response
+
+```json
+{
+  "data": [
+    {
+      "_id": "offer123",
+      "fixerId": "fixer123",
+      "title": "Reparaciones de plomería",
+      "description": "Ofrezco servicios de plomería profesional",
+      "category": "plomeria",
+      "price": 150000,
+      "isActive": true,
+      "images": ["https://example.com/image1.jpg"],
+      "createdAt": "2024-03-01T10:00:00.000Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+## Error Responses
+
+### Not Found (404)
+
+```json
+{
+  "success": false,
+  "error": "No jobs found"
+}
+```
+
+### Server Error (500)
+
+```json
+{
+  "success": false,
+  "error": "Error fetching jobs"
+}
+```
+
+## Related Endpoints
+
+- [Create Job](/api/jobs/create-job)
+- [Get Fixers by Job Type](/api/jobs/get-fixers-by-job)

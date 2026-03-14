@@ -1,0 +1,457 @@
+---
+title: 'Location Mapping'
+description: 'Interactive maps with Leaflet for location-based job offers and services'
+icon: 'map-location-dot'
+---
+
+## Overview
+
+Servineo integrates Leaflet.js to provide interactive mapping features for job offers and service locations. The system supports dynamic markers, radius-based filtering, and real-time distance calculations.
+
+## Map Integration
+
+<CardGroup cols={2}>
+  <Card title="Leaflet.js" icon="map">
+    Lightweight, mobile-friendly interactive maps
+  </Card>
+  <Card title="OpenStreetMap" icon="earth-americas">
+    Free, editable map tiles from OpenStreetMap
+  </Card>
+  <Card title="Dynamic Markers" icon="location-dot">
+    Custom markers for job offers and user location
+  </Card>
+  <Card title="Distance Calculation" icon="ruler">
+    Real-time distance calculation using Haversine formula
+  </Card>
+</CardGroup>
+
+## Basic Map View
+
+The basic map view allows users to select a location by clicking on the map.
+
+```tsx MapView.tsx
+'use client';
+
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { useState, useEffect } from 'react';
+import 'leaflet/dist/leaflet.css';
+
+interface MapViewProps {
+  onSelect: (lat: number, lon: number) => void;
+  markerPosition?: { lat: number; lon: number } | null;
+}
+
+export default function MapView({ onSelect, markerPosition }: MapViewProps) {
+  return (
+    <MapContainer
+      center={[markerPosition?.lat || -17.39, markerPosition?.lon || -66.15]}
+      zoom={13}
+      style={{ height: 400, width: '100%' }}
+    >
+      <TileLayer url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' />
+      <MarkerHandler onSelect={onSelect} markerPosition={markerPosition} />
+    </MapContainer>
+  );
+}
+
+function MarkerHandler({ onSelect, markerPosition }: MarkerHandlerProps) {
+  const [position, setPosition] = useState(markerPosition || null);
+
+  useEffect(() => {
+    setPosition(markerPosition || null);
+  }, [markerPosition]);
+
+  useMapEvents({
+    click(e) {
+      setPosition({ lat: e.latlng.lat, lon: e.latlng.lng });
+      onSelect(e.latlng.lat, e.latlng.lng);
+    },
+  });
+
+  return position ? <Marker position={[position.lat, position.lon]} /> : null;
+}
+```
+
+<Note>
+The map uses Bolivia's coordinates as default: latitude -17.39, longitude -66.15 (Cochabamba)
+</Note>
+
+## Advanced Job Offers Map
+
+The job offers map provides advanced features including radius-based filtering, custom markers, and hover interactions.
+
+### Distance Calculation
+
+The Haversine formula calculates distances between coordinates:
+
+```typescript
+const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in kilometers
+};
+```
+
+### Custom Markers
+
+<CodeGroup>
+```tsx Custom Offer Marker
+const markerIcon = L.divIcon({
+  className: 'custom-offer-marker',
+  html: `
+    <div class="relative animate-in fade-in slide-in-from-bottom-4 duration-500" 
+         style="animation-delay: ${index * 100}ms">
+      <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-2 
+                  bg-black/20 rounded-full blur-sm"></div>
+      <div class="relative group cursor-pointer">
+        <div class="absolute inset-0 bg-primary/20 rounded-full blur-md 
+                    group-hover:bg-primary/40 transition-all duration-300"></div>
+        <div class="relative w-12 h-12 bg-black/15 rounded-full border-4 
+                    border-white shadow-2xl flex items-center justify-center 
+                    transition-all duration-300 group-hover:scale-110">
+          <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+        </div>
+        <div class="absolute -top-1 -right-1 w-6 h-6 bg-primary text-white 
+                    text-xs font-bold rounded-full flex items-center justify-center 
+                    shadow-lg border-2 border-white group-hover:scale-110 
+                    transition-transform duration-300">
+          ${offer.services.length}
+        </div>
+      </div>
+    </div>
+  `,
+  iconSize: [48, 48],
+  iconAnchor: [24, 48],
+});
+```
+
+```tsx User Location Marker
+const userIcon = L.divIcon({
+  className: 'custom-user-marker',
+  html: `
+    <div class="relative">
+      <div class="absolute inset-0 w-10 h-10 -left-1 -top-1 
+                  bg-primary/30 rounded-full animate-ping"></div>
+      <div class="relative w-8 h-8 bg-primary rounded-full border-4 
+                  border-white shadow-2xl flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" 
+             viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+        </svg>
+      </div>
+    </div>
+  `,
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
+});
+```
+</CodeGroup>
+
+### Radius-Based Filtering
+
+The map includes dynamic radius controls for filtering nearby offers:
+
+<Tabs>
+  <Tab title="Radius State">
+    ```typescript
+    const [radiusKm, setRadiusKm] = useState(1);
+    const [offersInRadius, setOffersInRadius] = useState(0);
+    const circleRef = useRef<Circle | null>(null);
+
+    const calculateOffersInRadius = useCallback(
+      (currentRadius: number) => {
+        const count = offers.filter((offer) => {
+          const distance = calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            offer.location.lat,
+            offer.location.lng,
+          );
+          return distance <= currentRadius;
+        }).length;
+        setOffersInRadius(count);
+      },
+      [offers],
+    );
+    ```
+  </Tab>
+  <Tab title="Circle Overlay">
+    ```typescript
+    const circle = L.circle([userLocation.lat, userLocation.lng], {
+      color: '#3b82f6',
+      fillColor: '#3b82f6',
+      fillOpacity: 0.15,
+      radius: radiusKm * 1000, // Convert km to meters
+      weight: 2,
+      opacity: 0.6,
+    }).addTo(map);
+
+    circleRef.current = circle;
+    ```
+  </Tab>
+  <Tab title="Radius Controls">
+    ```tsx
+    <div className='space-y-3'>
+      <div className='flex items-center justify-between'>
+        <span className='text-gray-700 text-xs font-medium'>Radio de búsqueda</span>
+        <span className='text-primary text-sm font-bold'>{radiusKm.toFixed(1)} km</span>
+      </div>
+
+      {/* Slider */}
+      <input
+        type='range'
+        min='0.5'
+        max='10'
+        step='0.5'
+        value={radiusKm}
+        onChange={(e) => handleRadiusChange(parseFloat(e.target.value))}
+        className='w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer'
+      />
+
+      {/* Increment/Decrement Buttons */}
+      <div className='flex items-center justify-center gap-2'>
+        <button
+          onClick={decreaseRadius}
+          disabled={radiusKm <= 0.5}
+          className='w-8 h-8 flex items-center justify-center rounded-full 
+                     bg-blue-100 text-blue-600 hover:bg-blue-200'
+        >
+          <Minus className='w-4 h-4' />
+        </button>
+        <span className='text-xs text-gray-500'>Ajustar radio</span>
+        <button
+          onClick={increaseRadius}
+          disabled={radiusKm >= 10}
+          className='w-8 h-8 flex items-center justify-center rounded-full 
+                     bg-blue-100 text-blue-600 hover:bg-blue-200'
+        >
+          <Plus className='w-4 h-4' />
+        </button>
+      </div>
+    </div>
+    ```
+  </Tab>
+</Tabs>
+
+## Hover Interactions
+
+The map features sophisticated hover interactions with debouncing to prevent flickering:
+
+```typescript
+const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+const isHoveringCardRef = useRef<boolean>(false);
+const currentHoveredOfferIdRef = useRef<string | null>(null);
+const pendingHoverRef = useRef<string | null>(null);
+
+markerElement.addEventListener('mouseenter', () => {
+  // Clear any pending timeout
+  if (hoverTimeoutRef.current) {
+    clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = null;
+  }
+
+  // Skip if already showing this offer
+  if (currentHoveredOfferIdRef.current === offer.id) {
+    return;
+  }
+
+  pendingHoverRef.current = offer.id;
+
+  // Short delay for responsiveness
+  hoverTimeoutRef.current = setTimeout(() => {
+    if (pendingHoverRef.current === offer.id && !isHoveringCardRef.current) {
+      currentHoveredOfferIdRef.current = offer.id;
+      setHoveredOffer(offer);
+    }
+    pendingHoverRef.current = null;
+  }, 100);
+});
+
+markerElement.addEventListener('mouseleave', () => {
+  if (pendingHoverRef.current === offer.id) {
+    pendingHoverRef.current = null;
+  }
+
+  if (hoverTimeoutRef.current) {
+    clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = null;
+  }
+
+  // Only hide if this is the currently shown marker
+  if (currentHoveredOfferIdRef.current === offer.id) {
+    hoverTimeoutRef.current = setTimeout(() => {
+      if (!isHoveringCardRef.current && currentHoveredOfferIdRef.current === offer.id) {
+        currentHoveredOfferIdRef.current = null;
+        setHoveredOffer(null);
+      }
+    }, 150);
+  }
+});
+```
+
+<Info>
+The hover system uses refs to track state outside React's render cycle, preventing race conditions and ensuring smooth interactions.
+</Info>
+
+## Map Controls
+
+### Zoom Controls
+
+```tsx
+<div className='absolute top-4 left-4 flex flex-col gap-0 z-[450] 
+                bg-white rounded-lg shadow-md border border-gray-300 overflow-hidden'>
+  <button
+    onClick={handleZoomIn}
+    className='w-10 h-10 flex items-center justify-center text-gray-700 
+               hover:bg-gray-100 transition-colors border-b border-gray-300'
+    aria-label='Zoom in'
+  >
+    <span className='text-xl font-semibold leading-none'>+</span>
+  </button>
+  <button
+    onClick={handleZoomOut}
+    className='w-10 h-10 flex items-center justify-center text-gray-700 
+               hover:bg-gray-100 transition-colors'
+    aria-label='Zoom out'
+  >
+    <span className='text-xl font-semibold leading-none'>−</span>
+  </button>
+</div>
+```
+
+### Map Details Panel
+
+```tsx
+<div className='absolute bottom-4 right-4 bg-white/95 backdrop-blur-xl 
+                border border-blue-300 rounded-2xl p-4 shadow-2xl z-[450]'>
+  <h4 className='font-bold text-sm text-primary mb-3 flex items-center gap-2'>
+    <MapPin className='w-4 h-4' />
+    Detalles del mapa
+  </h4>
+  <div className='space-y-2.5 text-sm'>
+    <div className='flex items-center gap-3'>
+      <div className='w-5 h-5 rounded-full bg-primary border-2 border-white shadow-lg' />
+      <span className='font-medium'>Tu ubicación</span>
+    </div>
+    <div className='flex items-center gap-3'>
+      <div className='w-5 h-5 rounded-full bg-black/20 border-2 border-white shadow-lg' />
+      <span className='font-medium'>Ofertas de trabajo</span>
+    </div>
+  </div>
+
+  {/* Offers Counter */}
+  <div className='mt-3 pt-3 border-t border-blue-500/30'>
+    <p className='text-xs font-semibold text-primary'>
+      {offersInRadius} {offersInRadius === 1 ? 'oferta' : 'ofertas'} en el radio
+    </p>
+    <p className='text-xs text-gray-500 mt-1'>{offers.length} total disponibles</p>
+  </div>
+</div>
+```
+
+## Client-Side Rendering
+
+Leaflet requires client-side rendering. Use this pattern:
+
+```typescript
+const [isClient, setIsClient] = useState(false);
+
+useEffect(() => {
+  setIsClient(true);
+}, []);
+
+if (!isClient) {
+  return (
+    <div className='w-full h-full rounded-2xl overflow-hidden shadow-lg 
+                    bg-gray-200 flex items-center justify-center'>
+      <p>Cargando mapa...</p>
+    </div>
+  );
+}
+```
+
+## Leaflet Imports
+
+Dynamic imports ensure Leaflet loads only on the client:
+
+```typescript
+useEffect(() => {
+  if (!isClient || !mapRef.current) return;
+
+  const initializeMap = async () => {
+    const L = await import('leaflet');
+
+    const map = L.map(mapRef.current!, {
+      zoomControl: false,
+    }).setView([userLocation.lat, userLocation.lng], 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(map);
+
+    // Add markers, circles, etc.
+  };
+
+  initializeMap();
+
+  return () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+  };
+}, [isClient]);
+```
+
+## Installation
+
+Install required dependencies:
+
+```bash
+npm install leaflet react-leaflet
+npm install -D @types/leaflet
+```
+
+Import Leaflet CSS:
+
+```typescript
+import 'leaflet/dist/leaflet.css';
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Cleanup" icon="broom">
+    Always remove map instances in cleanup functions to prevent memory leaks
+  </Card>
+  <Card title="Performance" icon="gauge-high">
+    Use refs for hover state to avoid unnecessary re-renders
+  </Card>
+  <Card title="Accessibility" icon="universal-access">
+    Provide aria-labels for all interactive map controls
+  </Card>
+  <Card title="Mobile" icon="mobile">
+    Test touch interactions on mobile devices for optimal UX
+  </Card>
+</CardGroup>
+
+## Related Documentation
+
+- [Leaflet Documentation](https://leafletjs.com/)
+- [React Leaflet Guide](https://react-leaflet.js.org/)
+- [Finding Services](/requesters/finding-services)
+- [Managing Jobs](/fixers/managing-jobs)

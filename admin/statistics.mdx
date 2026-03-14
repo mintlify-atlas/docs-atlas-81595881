@@ -1,0 +1,427 @@
+---
+title: 'Statistics & Analytics'
+description: 'Advanced analytics, charts, and statistics for monitoring platform performance'
+icon: 'chart-mixed'
+---
+
+## Overview
+
+The statistics module provides comprehensive analytics for tracking user behavior, fixer performance, and search patterns across the Servineo platform.
+
+<Note>
+  Statistics are fetched from the backend API and support multiple time periods: weekly (semanal), monthly (mensual), and yearly (anual).
+</Note>
+
+## Key Metrics
+
+<CardGroup cols={3}>
+  <Card title="Total Searches" icon="magnifying-glass">
+    Track the total number of search queries in the selected period
+  </Card>
+  <Card title="User Distribution" icon="chart-pie">
+    View user type breakdown (Requesters, Fixers, Visitors)
+  </Card>
+  <Card title="Fixer Rankings" icon="ranking-star">
+    See top-performing fixers by search frequency
+  </Card>
+  <Card title="City Analytics" icon="city">
+    Analyze searches by geographic location
+  </Card>
+  <Card title="Job Types" icon="briefcase">
+    Monitor popular service categories
+  </Card>
+  <Card title="Period Comparison" icon="calendar">
+    Compare metrics across different time ranges
+  </Card>
+</CardGroup>
+
+## Statistics API Integration
+
+Fetch statistics using Redux RTK Query:
+
+```typescript
+import { useGetStatisticsQuery } from '@/app/redux/services/dashboardApi';
+
+function StatisticsPage() {
+  const [selectedPeriod, setSelectedPeriod] = useState<'semanal' | 'mensual' | 'anual'>('mensual');
+  const { data, error, isLoading, refetch } = useGetStatisticsQuery(selectedPeriod);
+  
+  useEffect(() => {
+    refetch();
+  }, [selectedPeriod, refetch]);
+  
+  if (isLoading) return <div>Loading statistics...</div>;
+  if (error) return <div>Error loading data</div>;
+  
+  return (
+    <div>
+      <h2>Total Searches: {data.count}</h2>
+      {/* Render charts */}
+    </div>
+  );
+}
+```
+
+## Data Structure
+
+Statistics API returns the following structure:
+
+```typescript
+interface StatisticsData {
+  count: number; // Total searches in period
+  filter_statistics: {
+    fixer_name: Record<string, number>; // Searches by fixer
+    city: Record<string, number>;        // Searches by city
+    job_type: Record<string, number>;    // Searches by job type
+  };
+  user_type_statistics: Record<string, number>; // Distribution by user type
+}
+```
+
+## Chart Components
+
+### Pie/Donut Chart - User Distribution
+
+Visualize user type distribution:
+
+```tsx
+import { ChartPieDonut } from '@/Components/Statistics-panel/Chart-pie-donut';
+
+function UserDistributionChart({ data }: { data: StatisticsData }) {
+  const pieData = transformFilterData(data.user_type_statistics);
+  
+  return (
+    <ChartPieDonut
+      data={pieData}
+      title="User Distribution"
+      description="Breakdown by user type"
+    />
+  );
+}
+
+// Transform backend data to chart format
+const transformFilterData = (filterData: Record<string, number>) => {
+  return Object.entries(filterData).map(([name, value]) => ({
+    name,
+    value,
+    fill: getColorForCategory(name)
+  }));
+};
+```
+
+<Note>
+  The pie chart uses Recharts library with customizable colors and displays percentages automatically.
+</Note>
+
+### Bar Chart - Fixer Rankings
+
+Display top fixers by search volume:
+
+```tsx
+import { ChartBarLabel } from '@/Components/Statistics-panel/Chart-bar-Label';
+
+function FixerRankingsChart({ data }: { data: StatisticsData }) {
+  const fixerData = transformFilterData(data.filter_statistics.fixer_name);
+  
+  return (
+    <ChartBarLabel
+      data={fixerData}
+      title="Top Fixers"
+      description="Most searched fixers this period"
+      color="#2563eb"
+      trendText="Trending fixers"
+      footerText="Showing search statistics"
+      barSize={90}
+    />
+  );
+}
+```
+
+### Bar Chart - City Analysis
+
+Analyze searches by geographic location:
+
+```tsx
+function CityAnalyticsChart({ data }: { data: StatisticsData }) {
+  const cityData = transformFilterData(data.filter_statistics.city);
+  
+  return (
+    <ChartBarLabel
+      data={cityData}
+      title="Searches by City"
+      description="Geographic distribution of searches"
+      color="#10b981"
+      barSize={70}
+    />
+  );
+}
+```
+
+### Bar Chart - Job Types
+
+Track popular service categories:
+
+```tsx
+function JobTypeChart({ data }: { data: StatisticsData }) {
+  const jobTypeData = transformFilterData(data.filter_statistics.job_type);
+  
+  return (
+    <ChartBarLabel
+      data={jobTypeData}
+      title="Popular Job Types"
+      description="Most requested services"
+      color="#f59e0b"
+      barSize={70}
+    />
+  );
+}
+```
+
+## Period Selection
+
+<Steps>
+  <Step title="Choose Period">
+    Select from weekly, monthly, or yearly views:
+    
+    ```tsx
+    <select
+      value={selectedPeriod}
+      onChange={(e) => setSelectedPeriod(e.target.value)}
+    >
+      <option value="semanal">Weekly</option>
+      <option value="mensual">Monthly</option>
+      <option value="anual">Yearly</option>
+    </select>
+    ```
+  </Step>
+  
+  <Step title="Auto-Refresh Data">
+    Statistics automatically refetch when period changes:
+    
+    ```typescript
+    useEffect(() => {
+      refetch();
+    }, [selectedPeriod, refetch]);
+    ```
+  </Step>
+  
+  <Step title="Display Results">
+    Show total count and period label:
+    
+    ```tsx
+    <h2>Period: {selectedPeriod === 'semanal' ? 'Weekly' : 'Monthly'}</h2>
+    <p>Total Searches: {data.count}</p>
+    ```
+  </Step>
+</Steps>
+
+## Fixer Performance Table
+
+Display detailed fixer statistics in a table format:
+
+```tsx
+import FixerStatsTable from '@/Components/Statistics-panel/fixer-stats-table';
+
+interface FixerStat {
+  id: string;
+  name: string;
+  total: number;
+  active: number;
+  cancelled: number;
+  rescheduled: number;
+  rate: string; // Cancellation rate
+}
+
+function FixerPerformance() {
+  const fixerStats: FixerStat[] = [
+    {
+      id: "1",
+      name: "Juan Pérez",
+      total: 45,
+      active: 38,
+      cancelled: 5,
+      rescheduled: 2,
+      rate: "11.1%"
+    }
+  ];
+  
+  return <FixerStatsTable stats={fixerStats} />;
+}
+```
+
+<Warning>
+  High cancellation rates (>20%) may indicate fixer reliability issues. Monitor these metrics closely.
+</Warning>
+
+## Metrics Cards
+
+Display key appointment metrics:
+
+```tsx
+import MetricsCards from '@/Components/Statistics-panel/metrics-cards';
+
+interface Metrics {
+  total: number;
+  active: number;
+  cancelled: number;
+}
+
+function AppointmentMetrics() {
+  const metrics: Metrics = {
+    total: 152,
+    active: 98,
+    cancelled: 12
+  };
+  
+  return <MetricsCards metrics={metrics} />;
+}
+```
+
+The component displays three cards:
+- **Total**: All appointments (blue border)
+- **Scheduled/Active**: Currently active appointments (green border)
+- **Cancelled**: Cancelled appointments (red border)
+
+## Chart Customization
+
+Customize bar charts with various options:
+
+```typescript
+interface ChartBarLabelProps {
+  data: ChartDataItem[];
+  title?: string;
+  description?: string;
+  color?: string;           // Bar color (hex)
+  dataKey?: string;         // Data property name
+  nameKey?: string;         // Label property name
+  trendText?: string;       // Trend indicator text
+  footerText?: string;      // Footer description
+  showTrend?: boolean;      // Show/hide trend icon
+  height?: number;          // Chart height in pixels
+  barSize?: number;         // Bar width
+}
+```
+
+Example with custom styling:
+
+```tsx
+<ChartBarLabel
+  data={customData}
+  title="Custom Analytics"
+  description="Your custom description"
+  color="#8b5cf6"  // Purple bars
+  height={400}     // Taller chart
+  barSize={120}    // Wider bars
+  showTrend={false} // Hide trend indicator
+/>
+```
+
+## Navigation
+
+Return to admin dashboard:
+
+```tsx
+import { Button } from '@/Components/ui/button';
+import { useRouter } from 'next/navigation';
+
+function BackButton() {
+  const router = useRouter();
+  
+  const handleBack = () => {
+    router.push('/user-admin/dashboard');
+  };
+  
+  return (
+    <Button 
+      onClick={handleBack} 
+      variant="outline"
+      className="flex items-center gap-2"
+    >
+      <BackIcon />
+      Back to Dashboard
+    </Button>
+  );
+}
+```
+
+## Real-World Example
+
+Complete statistics page implementation:
+
+```tsx
+'use client';
+import { useState, useEffect } from 'react';
+import { useGetStatisticsQuery } from '@/app/redux/services/dashboardApi';
+import { ChartPieDonut } from '@/Components/Statistics-panel/Chart-pie-donut';
+import { ChartBarLabel } from '@/Components/Statistics-panel/Chart-bar-Label';
+
+export default function StatisticsPage() {
+  const [period, setPeriod] = useState<'semanal' | 'mensual' | 'anual'>('mensual');
+  const { data, isLoading, error, refetch } = useGetStatisticsQuery(period);
+  
+  useEffect(() => {
+    refetch();
+  }, [period, refetch]);
+  
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage />;
+  
+  const userTypeData = transformData(data.user_type_statistics);
+  const fixerData = transformData(data.filter_statistics.fixer_name);
+  const cityData = transformData(data.filter_statistics.city);
+  const jobTypeData = transformData(data.filter_statistics.job_type);
+  
+  return (
+    <main className="p-8">
+      <PeriodSelector value={period} onChange={setPeriod} />
+      
+      <h2>Total Searches: {data.count}</h2>
+      
+      {userTypeData.length > 0 && (
+        <ChartPieDonut 
+          data={userTypeData}
+          title="User Distribution"
+        />
+      )}
+      
+      {fixerData.length > 0 && (
+        <ChartBarLabel
+          data={fixerData}
+          title="Top Fixers"
+          color="#2563eb"
+        />
+      )}
+      
+      {cityData.length > 0 && (
+        <ChartBarLabel
+          data={cityData}
+          title="Cities"
+          color="#10b981"
+        />
+      )}
+      
+      {jobTypeData.length > 0 && (
+        <ChartBarLabel
+          data={jobTypeData}
+          title="Job Types"
+          color="#f59e0b"
+        />
+      )}
+    </main>
+  );
+}
+```
+
+## Related Pages
+
+<CardGroup cols={3}>
+  <Card title="Admin Dashboard" icon="gauge" href="/admin/dashboard">
+    Return to main dashboard
+  </Card>
+  <Card title="User Management" icon="users" href="/admin/user-management">
+    Manage platform users
+  </Card>
+  <Card title="Promotions" icon="badge-percent" href="/admin/promotions">
+    Manage promotional offers
+  </Card>
+</CardGroup>

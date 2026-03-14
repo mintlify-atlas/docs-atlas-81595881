@@ -1,0 +1,314 @@
+---
+title: 'Update User'
+description: 'Update user profile and settings'
+api: 'PATCH /api/user/{id}'
+---
+
+## Update User Description
+
+Update a user's description or bio.
+
+### Endpoint
+
+```
+POST /api/user/{id}/description
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The unique identifier of the user
+</ParamField>
+
+### Request Body
+
+<ParamField body="description" type="string" required>
+  The new description/bio for the user
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.servineo.com/api/user/user123/description \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "description": "Experienced plumber with 10 years in residential and commercial projects"
+  }'
+```
+
+```typescript TypeScript
+import { useUpdateDescriptionMutation } from '@/app/redux/services/userApi';
+
+const [updateDescription] = useUpdateDescriptionMutation();
+
+const result = await updateDescription({
+  id: 'user123',
+  description: 'Experienced plumber with 10 years of experience'
+});
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "_id": "user123",
+  "name": "Juan Pérez",
+  "email": "juan@example.com",
+  "description": "Experienced plumber with 10 years in residential and commercial projects",
+  "updatedAt": "2024-03-14T15:45:00.000Z"
+}
+```
+
+---
+
+## Update User Location
+
+Update a user's work location (typically for fixers).
+
+### Endpoint
+
+```
+PATCH /api/user/{id}/location
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The unique identifier of the user
+</ParamField>
+
+### Request Body
+
+<ParamField body="workLocation" type="object" required>
+  The work location object
+  
+  <Expandable title="Location Properties">
+    <ParamField body="lat" type="number" required>
+      Latitude coordinate
+    </ParamField>
+    
+    <ParamField body="lng" type="number" required>
+      Longitude coordinate
+    </ParamField>
+    
+    <ParamField body="direccion" type="string">
+      Street address
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X PATCH https://api.servineo.com/api/user/user123/location \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "workLocation": {
+      "lat": -25.2637,
+      "lng": -57.5759,
+      "direccion": "Av. Mariscal López 123, Asunción"
+    }
+  }'
+```
+
+```typescript TypeScript
+import { useUpdateLocationMutation } from '@/app/redux/services/userApi';
+
+const [updateLocation] = useUpdateLocationMutation();
+
+const result = await updateLocation({
+  id: 'user123',
+  location: {
+    lat: -25.2637,
+    lng: -57.5759,
+    direccion: 'Av. Mariscal López 123, Asunción'
+  }
+});
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "success": true,
+  "user": {
+    "_id": "user123",
+    "name": "Juan Pérez",
+    "workLocation": {
+      "lat": -25.2637,
+      "lng": -57.5759,
+      "direccion": "Av. Mariscal López 123, Asunción"
+    },
+    "updatedAt": "2024-03-14T15:45:00.000Z"
+  }
+}
+```
+
+---
+
+## Convert User to Fixer
+
+Convert a regular user (requester) to a fixer by adding their professional profile.
+
+### Endpoint
+
+```
+PATCH /api/user-profiles/{id}/convert-fixer
+```
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The user profile ID
+</ParamField>
+
+### Request Body
+
+<ParamField body="profile" type="object" required>
+  The fixer profile information
+  
+  <Expandable title="Profile Properties">
+    <ParamField body="ci" type="string" required>
+      National ID or tax number
+    </ParamField>
+    
+    <ParamField body="services" type="array" required>
+      Array of services the fixer provides
+    </ParamField>
+    
+    <ParamField body="paymentMethods" type="array" required>
+      Array of accepted payment methods
+    </ParamField>
+    
+    <ParamField body="vehicle" type="object">
+      Vehicle information
+    </ParamField>
+    
+    <ParamField body="terms" type="object" required>
+      Terms acceptance
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X PATCH https://api.servineo.com/api/user-profiles/profile123/convert-fixer \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "profile": {
+      "ci": "1234567",
+      "services": [
+        {"id": "plomeria", "name": "Plomería"},
+        {"id": "electricidad", "name": "Electricidad"}
+      ],
+      "paymentMethods": [
+        {"type": "efectivo"},
+        {"type": "qr"}
+      ],
+      "vehicle": {
+        "hasVehicle": true,
+        "type": "moto"
+      },
+      "terms": {
+        "accepted": true,
+        "acceptedAt": "2024-03-14T15:00:00.000Z"
+      }
+    }
+  }'
+```
+
+```typescript TypeScript
+import { useConvertToFixerMutation } from '@/app/redux/services/userApi';
+
+const [convertToFixer] = useConvertToFixerMutation();
+
+const result = await convertToFixer({
+  id: 'profile123',
+  profile: {
+    ci: '1234567',
+    services: [
+      { id: 'plomeria', name: 'Plomería' },
+      { id: 'electricidad', name: 'Electricidad' }
+    ],
+    paymentMethods: [
+      { type: 'efectivo' },
+      { type: 'qr' }
+    ],
+    vehicle: {
+      hasVehicle: true,
+      type: 'moto'
+    },
+    terms: {
+      accepted: true,
+      acceptedAt: new Date().toISOString()
+    }
+  }
+});
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "user": {
+    "id": "user123",
+    "name": "Juan Pérez",
+    "email": "juan@example.com",
+    "role": "fixer"
+  },
+  "profile": {
+    "ci": "1234567",
+    "services": [
+      {"id": "plomeria", "name": "Plomería"},
+      {"id": "electricidad", "name": "Electricidad"}
+    ],
+    "status": "pending",
+    "createdAt": "2024-03-14T15:45:00.000Z"
+  }
+}
+```
+
+## Error Responses
+
+### Validation Error (400)
+
+```json
+{
+  "success": false,
+  "error": "Invalid location coordinates",
+  "errors": {
+    "lat": ["Latitude must be between -90 and 90"],
+    "lng": ["Longitude must be between -180 and 180"]
+  }
+}
+```
+
+### User Not Found (404)
+
+```json
+{
+  "success": false,
+  "error": "User not found"
+}
+```
+
+## Related Endpoints
+
+- [Get User](/api/users/get-user)
+- [User Roles](/api/users/user-roles)

@@ -1,0 +1,514 @@
+---
+title: 'Wallet Operations'
+description: 'Manage user wallets and balances'
+icon: 'wallet'
+---
+
+## Overview
+
+Servineo provides wallet functionality for managing earnings, payments, and platform credits.
+
+<Info>
+  Wallets are primarily used by fixers to track earnings and by requesters to manage prepaid credits.
+</Info>
+
+## Wallet Structure
+
+```typescript
+interface Wallet {
+  userId: string;
+  balance: number;              // Current balance in local currency
+  currency: string;             // Currency code (e.g., 'PYG', 'USD')
+  pendingBalance: number;       // Funds pending withdrawal
+  totalEarnings: number;        // Total lifetime earnings (fixers)
+  totalSpent: number;           // Total lifetime spending (requesters)
+  lastTransaction: {
+    id: string;
+    type: 'credit' | 'debit';
+    amount: number;
+    timestamp: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+---
+
+## Get Wallet Balance
+
+Retrieve the current wallet balance for a user.
+
+### Endpoint
+
+```
+GET /api/wallet/{userId}
+```
+
+### Path Parameters
+
+<ParamField path="userId" type="string" required>
+  The unique identifier of the user
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/wallet/user123 \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+const getWalletBalance = async (userId: string) => {
+  const response = await fetch(
+    `https://api.servineo.com/api/wallet/${userId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  return await response.json();
+};
+
+const wallet = await getWalletBalance('user123');
+console.log('Available balance:', wallet.balance);
+console.log('Pending balance:', wallet.pendingBalance);
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "userId": "user123",
+  "balance": 450000,
+  "currency": "PYG",
+  "pendingBalance": 150000,
+  "totalEarnings": 2500000,
+  "totalSpent": 0,
+  "lastTransaction": {
+    "id": "txn_789",
+    "type": "credit",
+    "amount": 150000,
+    "timestamp": "2024-03-15T12:30:00.000Z"
+  },
+  "createdAt": "2024-01-15T10:00:00.000Z",
+  "updatedAt": "2024-03-15T12:30:00.000Z"
+}
+```
+
+---
+
+## Add Funds to Wallet
+
+Add funds to a user's wallet (for requesters to prepay for services).
+
+### Endpoint
+
+```
+POST /api/wallet/add-funds
+```
+
+### Request Body
+
+<ParamField body="userId" type="string" required>
+  User ID receiving the funds
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  Amount to add (positive number)
+</ParamField>
+
+<ParamField body="paymentMethod" type="string" required>
+  Payment method used: `qr`, `tarjeta`
+</ParamField>
+
+<ParamField body="paymentDetails" type="object">
+  Payment transaction details
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.servineo.com/api/wallet/add-funds \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user123",
+    "amount": 500000,
+    "paymentMethod": "tarjeta",
+    "paymentDetails": {
+      "transactionId": "ch_1234567890",
+      "cardLast4": "4242"
+    }
+  }'
+```
+
+```typescript TypeScript
+const addFundsToWallet = async (
+  userId: string,
+  amount: number,
+  paymentMethod: 'qr' | 'tarjeta',
+  transactionId: string
+) => {
+  const response = await fetch(
+    'https://api.servineo.com/api/wallet/add-funds',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        userId,
+        amount,
+        paymentMethod,
+        paymentDetails: { transactionId }
+      })
+    }
+  );
+  
+  return await response.json();
+};
+
+await addFundsToWallet('user123', 500000, 'tarjeta', 'ch_1234567890');
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "success": true,
+  "wallet": {
+    "userId": "user123",
+    "balance": 950000,
+    "previousBalance": 450000
+  },
+  "transaction": {
+    "id": "txn_456",
+    "type": "credit",
+    "amount": 500000,
+    "timestamp": "2024-03-15T14:00:00.000Z"
+  }
+}
+```
+
+---
+
+## Withdraw from Wallet
+
+Withdraw earnings from wallet (for fixers).
+
+### Endpoint
+
+```
+POST /api/wallet/withdraw
+```
+
+### Request Body
+
+<ParamField body="userId" type="string" required>
+  Fixer's user ID
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  Amount to withdraw
+</ParamField>
+
+<ParamField body="withdrawalMethod" type="string" required>
+  Method: `bank_transfer`, `mobile_money`
+</ParamField>
+
+<ParamField body="accountDetails" type="object" required>
+  Bank account or mobile money details
+  
+  <Expandable title="Account Details">
+    <ParamField body="accountNumber" type="string">
+      Bank account number or mobile number
+    </ParamField>
+    
+    <ParamField body="accountName" type="string">
+      Account holder name
+    </ParamField>
+    
+    <ParamField body="bankName" type="string">
+      Bank name (for bank transfers)
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.servineo.com/api/wallet/withdraw \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "fixer123",
+    "amount": 300000,
+    "withdrawalMethod": "bank_transfer",
+    "accountDetails": {
+      "accountNumber": "1234567890",
+      "accountName": "Juan Pérez",
+      "bankName": "Banco Nacional"
+    }
+  }'
+```
+
+```typescript TypeScript
+interface WithdrawalRequest {
+  userId: string;
+  amount: number;
+  withdrawalMethod: 'bank_transfer' | 'mobile_money';
+  accountDetails: {
+    accountNumber: string;
+    accountName: string;
+    bankName?: string;
+  };
+}
+
+const withdrawFromWallet = async (withdrawal: WithdrawalRequest) => {
+  const response = await fetch(
+    'https://api.servineo.com/api/wallet/withdraw',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(withdrawal)
+    }
+  );
+  
+  return await response.json();
+};
+
+await withdrawFromWallet({
+  userId: 'fixer123',
+  amount: 300000,
+  withdrawalMethod: 'bank_transfer',
+  accountDetails: {
+    accountNumber: '1234567890',
+    accountName: 'Juan Pérez',
+    bankName: 'Banco Nacional'
+  }
+});
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "success": true,
+  "withdrawalId": "wd_789",
+  "status": "pending",
+  "amount": 300000,
+  "processingTime": "1-3 business days",
+  "wallet": {
+    "userId": "fixer123",
+    "balance": 150000,
+    "previousBalance": 450000,
+    "pendingBalance": 0
+  },
+  "transaction": {
+    "id": "txn_999",
+    "type": "debit",
+    "amount": 300000,
+    "timestamp": "2024-03-15T15:00:00.000Z"
+  }
+}
+```
+
+---
+
+## Get Transaction History
+
+Retrieve wallet transaction history.
+
+### Endpoint
+
+```
+GET /api/wallet/{userId}/transactions
+```
+
+### Query Parameters
+
+<ParamField query="limit" type="number">
+  Number of transactions to return (default: 20)
+</ParamField>
+
+<ParamField query="offset" type="number">
+  Pagination offset (default: 0)
+</ParamField>
+
+<ParamField query="type" type="string">
+  Filter by type: `credit`, `debit`, or `all` (default: all)
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.servineo.com/api/wallet/user123/transactions?limit=10&type=credit" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+const getTransactionHistory = async (
+  userId: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+    type?: 'credit' | 'debit' | 'all';
+  }
+) => {
+  const params = new URLSearchParams();
+  if (options?.limit) params.append('limit', String(options.limit));
+  if (options?.offset) params.append('offset', String(options.offset));
+  if (options?.type) params.append('type', options.type);
+  
+  const response = await fetch(
+    `https://api.servineo.com/api/wallet/${userId}/transactions?${params}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  return await response.json();
+};
+
+const history = await getTransactionHistory('user123', {
+  limit: 10,
+  type: 'credit'
+});
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "transactions": [
+    {
+      "id": "txn_999",
+      "type": "credit",
+      "amount": 150000,
+      "description": "Payment received for job #appt123",
+      "appointmentId": "appt123",
+      "relatedUserId": "requester456",
+      "balanceAfter": 450000,
+      "timestamp": "2024-03-15T12:30:00.000Z"
+    },
+    {
+      "id": "txn_888",
+      "type": "credit",
+      "amount": 200000,
+      "description": "Payment received for job #appt456",
+      "appointmentId": "appt456",
+      "relatedUserId": "requester789",
+      "balanceAfter": 300000,
+      "timestamp": "2024-03-14T16:00:00.000Z"
+    }
+  ],
+  "total": 25,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+---
+
+## Wallet Balance Rules
+
+### For Fixers
+
+<AccordionGroup>
+  <Accordion title="Earning Credits">
+    - Balance increases when payment is received
+    - Funds may be held in pending for 24-48 hours
+    - Platform fee is deducted automatically
+  </Accordion>
+  
+  <Accordion title="Withdrawals">
+    - Minimum withdrawal: 100,000 PYG
+    - Processing time: 1-3 business days
+    - Withdrawal fees may apply
+  </Accordion>
+</AccordionGroup>
+
+### For Requesters
+
+<AccordionGroup>
+  <Accordion title="Adding Funds">
+    - Funds are immediately available
+    - Used automatically for future appointments
+    - Bonus credits may be offered for bulk purchases
+  </Accordion>
+  
+  <Accordion title="Refunds">
+    - Cancelled appointments refund to wallet
+    - Refund to original payment method available
+    - Processing time: 5-10 business days
+  </Accordion>
+</AccordionGroup>
+
+## Error Responses
+
+### Insufficient Balance (400)
+
+```json
+{
+  "success": false,
+  "error": "Insufficient balance",
+  "available": 150000,
+  "requested": 300000
+}
+```
+
+### Withdrawal Limit Exceeded (400)
+
+```json
+{
+  "success": false,
+  "error": "Withdrawal amount exceeds daily limit",
+  "dailyLimit": 5000000,
+  "remainingLimit": 2000000
+}
+```
+
+### Pending Withdrawal Exists (409)
+
+```json
+{
+  "success": false,
+  "error": "Cannot withdraw while another withdrawal is pending",
+  "pendingWithdrawal": "wd_789"
+}
+```
+
+## Related Endpoints
+
+- [Process Payment](/api/payments/process-payment)
+- [Payment Methods](/api/payments/payment-methods)
+- [Get User](/api/users/get-user)

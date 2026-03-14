@@ -1,0 +1,394 @@
+---
+title: 'Payments'
+description: 'Learn about payment methods and managing transactions'
+icon: 'wallet'
+---
+
+## Payment Overview
+
+Servineo provides multiple secure payment options for requesters to pay for completed services. All transactions are tracked and invoiced for your records.
+
+## Payment Methods
+
+<CardGroup cols={2}>
+  <Card title="QR Code Payment" icon="qrcode">
+    Scan and pay using QR code integration
+  </Card>
+  <Card title="Digital Wallet" icon="wallet">
+    Use your Servineo wallet balance
+  </Card>
+  <Card title="Bank Account" icon="building-columns">
+    Direct bank account transfers
+  </Card>
+  <Card title="Cash Payment" icon="money-bill">
+    Pay in cash for presential services
+  </Card>
+</CardGroup>
+
+## Wallet Dashboard
+
+### Viewing Your Wallet
+
+Access your wallet to see:
+
+```typescript
+interface WalletData {
+  balance: number;
+  currency: string;
+}
+
+interface Transaction {
+  _id: string;
+  type: string;
+  amount: number;
+  description: string;
+  jobId?: string;
+  createdAt: string;
+}
+```
+
+Reference: `src/Components/payment/WalletDashboardClient.tsx:10`
+
+### Wallet Features
+
+**Current Balance Display:**
+
+```tsx
+<div className="text-5xl font-bold mb-6">
+  Bs. {walletData?.balance?.toFixed(2) || '0.00'}
+</div>
+```
+
+Reference: `src/Components/payment/WalletDashboardClient.tsx:143`
+
+**Transaction History:**
+
+View your recent transactions with details:
+
+- Transaction type (payment, refund, recharge)
+- Amount with positive/negative indicator
+- Description and related job ID
+- Transaction date
+
+```typescript
+// Fetch wallet data from API
+const fetchWalletData = async (fixerId: string) => {
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  
+  const res = await fetch(`${BACKEND_URL}/api/fixer/payment-center/${fixerId}`);
+  const result = await res.json();
+  
+  if (result.success && result.data) {
+    setWalletData({
+      balance: result.data.saldoActual,
+      currency: "BOB"
+    });
+    setTransactions(result.data.transactions?.slice(0, 3) || []);
+  }
+};
+```
+
+Reference: `src/Components/payment/WalletDashboardClient.tsx:50`
+
+### Recharge Your Wallet
+
+Add funds to your wallet balance:
+
+<Steps>
+  <Step title="Navigate to Wallet">
+    Access your wallet dashboard
+  </Step>
+  <Step title="Click Recharge">
+    Select the "Recargar Saldo" button
+  </Step>
+  <Step title="Enter Amount">
+    Specify how much you want to add to your balance
+  </Step>
+  <Step title="Choose Payment Method">
+    Select your preferred payment method (QR, bank transfer, etc.)
+  </Step>
+  <Step title="Complete Transaction">
+    Follow the payment flow and confirm the recharge
+  </Step>
+</Steps>
+
+```tsx
+<Link
+  href={`/payment/FixerWallet/recarga?fixerId=${receivedFixerId}`}
+  className="w-full block text-center bg-white text-blue-600 py-3 rounded-xl"
+>
+  Recargar Saldo
+</Link>
+```
+
+Reference: `src/Components/payment/WalletDashboardClient.tsx:147`
+
+## Payment Center
+
+### Dashboard Overview
+
+The payment center provides a comprehensive view of your finances:
+
+```typescript
+interface FixerData {
+  saldoActual: number;          // Current balance
+  totalGanado: number;          // Total earned (for fixers)
+  trabajosCompletados: number;  // Completed jobs
+  fixerId?: string;
+  isTestData?: boolean;
+  lowBalanceAlert?: {
+    type: 'none' | 'low' | 'critical';
+  };
+}
+```
+
+Reference: `src/Components/payment/CentroPagos.tsx:15`
+
+### Balance Display
+
+```tsx
+<div className="bg-blue-600 rounded-2xl p-6 shadow-xl text-white">
+  <div className="flex items-center gap-4">
+    <Wallet size={44} />
+    <div>
+      <span className="text-sm opacity-90">Saldo Actual</span>
+      <h2 className="text-4xl font-bold">
+        Bs. {fixerData?.saldoActual?.toFixed(2) || '0.00'}
+      </h2>
+    </div>
+  </div>
+</div>
+```
+
+Reference: `src/Components/payment/CentroPagos.tsx:217`
+
+## QR Code Payments
+
+### Making a QR Payment
+
+Use the QR payment feature to pay quickly:
+
+<Steps>
+  <Step title="Generate QR Code">
+    The system generates a unique QR code for your payment
+  </Step>
+  <Step title="Scan with Banking App">
+    Use your banking app to scan the QR code
+  </Step>
+  <Step title="Confirm Amount">
+    Verify the payment amount matches the service cost
+  </Step>
+  <Step title="Complete Payment">
+    Authorize the payment in your banking app
+  </Step>
+  <Step title="Receive Confirmation">
+    Get instant confirmation once payment is processed
+  </Step>
+</Steps>
+
+<Note>
+  QR payments are processed in real-time and reflected immediately in both requester and fixer wallets.
+</Note>
+
+## Invoice Management
+
+### Viewing Invoices
+
+Access your invoice history:
+
+```tsx
+<button 
+  onClick={() => router.push('/payment/facturas')} 
+  className="w-full bg-white rounded-2xl p-4 shadow-sm"
+>
+  <div className="bg-blue-100 p-3 rounded-xl">
+    <FileText className="text-blue-600" size={28} />
+  </div>
+  <div className="flex-1 text-left">
+    <h4 className="font-bold text-gray-800">Mis Facturas</h4>
+    <p className="text-sm text-gray-500">Ver registro de facturas</p>
+  </div>
+</button>
+```
+
+Reference: `src/Components/payment/CentroPagos.tsx:285`
+
+### Invoice Details
+
+Each invoice includes:
+
+- Invoice number and date
+- Service description
+- Fixer information
+- Amount paid
+- Payment method used
+- Transaction ID
+
+## Transaction History
+
+### Viewing Transactions
+
+Your transaction history shows all payments and refunds:
+
+```tsx
+{transactions.map((tx) => (
+  <div key={tx._id} className="bg-white rounded-xl p-4 shadow-sm">
+    <div className={`w-12 h-12 rounded-full ${
+      tx.amount > 0 ? 'bg-green-100' : 'bg-red-100'
+    }`}>
+      {tx.amount > 0 ? (
+        <TrendingUp className="text-green-600" size={24} />
+      ) : (
+        <TrendingDown className="text-red-600" size={24} />
+      )}
+    </div>
+    <div className="flex-1">
+      <p className="font-semibold">{tx.description}</p>
+      <p className="text-sm text-gray-500">
+        {new Date(tx.createdAt).toLocaleDateString('es-ES')}
+      </p>
+    </div>
+    <div className={`font-bold ${
+      tx.amount > 0 ? 'text-green-600' : 'text-red-600'
+    }`}>
+      {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+    </div>
+  </div>
+))}
+```
+
+Reference: `src/Components/payment/WalletDashboardClient.tsx:171`
+
+### Transaction Types
+
+- **Payment**: Money sent to a fixer for completed service
+- **Refund**: Money returned for cancelled or disputed services
+- **Recharge**: Money added to your wallet balance
+- **Withdrawal**: Money transferred to your bank account
+
+## Payment Security
+
+<CardGroup cols={2}>
+  <Card title="Encrypted Transactions" icon="lock">
+    All payments are encrypted and secured using industry-standard protocols
+  </Card>
+  <Card title="Transaction Verification" icon="shield-check">
+    Two-factor authentication for large transactions
+  </Card>
+  <Card title="Fraud Detection" icon="user-shield">
+    Automated monitoring for suspicious activities
+  </Card>
+  <Card title="Dispute Resolution" icon="scale-balanced">
+    Built-in dispute system for payment issues
+  </Card>
+</CardGroup>
+
+## Bank Account Integration
+
+### Adding a Bank Account
+
+```tsx
+<button 
+  onClick={() => router.push(`/payment/cuenta-bancaria?fixerId=${fixerIdFromUrl}`)} 
+  className="w-full bg-white rounded-2xl p-4"
+>
+  <div className="bg-cyan-100 p-3 rounded-xl">
+    <Building2 className="text-cyan-600" size={28} />
+  </div>
+  <div>
+    <h4 className="font-bold">Mi cuenta bancaria</h4>
+    <p className="text-sm text-gray-500">Administración de la cuenta bancaria</p>
+  </div>
+</button>
+```
+
+Reference: `src/Components/payment/CentroPagos.tsx:267`
+
+### Bank Transfer Process
+
+<Steps>
+  <Step title="Link Bank Account">
+    Add your bank account details in the payment settings
+  </Step>
+  <Step title="Verify Account">
+    Complete the verification process (may take 1-2 business days)
+  </Step>
+  <Step title="Initiate Transfer">
+    Request a transfer from your Servineo wallet to your bank
+  </Step>
+  <Step title="Process Time">
+    Transfers typically complete within 24-48 hours
+  </Step>
+</Steps>
+
+## Payment Notifications
+
+Receive notifications for:
+
+- Payment received confirmations
+- Low balance alerts
+- Failed transaction attempts
+- Refund processing updates
+- Invoice generation
+
+### Low Balance Alerts
+
+```typescript
+if (shouldShow && level === "critical") {
+  showToast.error(
+    "Tu saldo está en negativo o en un estado crítico. Te recomendamos recargar tu billetera.",
+    { duration: 8000, position: "top-center" }
+  );
+}
+
+if (shouldShow && level === "low") {
+  showToast.warning(
+    "Tu saldo está bajo. Te recomendamos recargar tu billetera.",
+    { duration: 8000, position: "top-center" }
+  );
+}
+```
+
+Reference: `src/Components/payment/CentroPagos.tsx:84`
+
+## API Reference
+
+### Fetch Payment Center Data
+
+```typescript
+const fetchFixerData = async (fixerId: string) => {
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  
+  const response = await fetch(
+    `${BACKEND_URL}/api/fixer/payment-center/${fixerId}`,
+    {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
+  
+  const result = await response.json();
+  
+  if (result.success && result.data) {
+    return result.data;
+  }
+};
+```
+
+Reference: `src/Components/payment/CentroPagos.tsx:112`
+
+## Best Practices
+
+<Tip>
+  - Keep your wallet topped up to avoid payment delays
+  - Review invoices regularly for accuracy
+  - Save receipts for all transactions
+  - Use secure internet connections for payments
+  - Enable two-factor authentication for added security
+</Tip>
+
+## Next Steps
+
+<Card title="Rating & Reviews" icon="star" href="/requesters/rating-reviews">
+  After payment is complete, learn how to rate your service experience
+</Card>

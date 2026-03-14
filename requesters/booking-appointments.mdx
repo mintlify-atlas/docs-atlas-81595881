@@ -1,0 +1,311 @@
+---
+title: 'Booking Appointments'
+description: 'Learn how to schedule and manage appointments with fixers'
+icon: 'calendar-check'
+---
+
+## Appointment Overview
+
+Servineo supports two types of appointments: **virtual** (online meetings) and **presential** (in-person services). Both types follow a simple booking flow.
+
+## Creating an Appointment
+
+<Steps>
+  <Step title="Select a Time Slot">
+    Choose an available date and time from the fixer's calendar
+  </Step>
+  <Step title="Choose Modality">
+    Select either virtual or presential appointment type
+  </Step>
+  <Step title="Provide Details">
+    Fill in client information, contact details, and job description
+  </Step>
+  <Step title="Set Location/Link">
+    For presential: select location on map. For virtual: provide meeting link
+  </Step>
+  <Step title="Confirm Booking">
+    Review and submit your appointment request
+  </Step>
+</Steps>
+
+## Appointment Form
+
+### Required Information
+
+All appointments require the following fields:
+
+```typescript
+const baseSchema = z.object({
+  client: z
+    .string()
+    .regex(/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/, 'Ingrese un nombre de cliente válido')
+    .nonempty('Ingrese un nombre de cliente')
+    .max(50, 'El nombre no puede tener más de 50 caracteres'),
+
+  contact: z
+    .string()
+    .regex(/^[67]\d{7}$/, 'Ingrese un número de teléfono válido')
+    .nonempty('Ingrese un número de teléfono'),
+
+  description: z
+    .string()
+    .nonempty('Ingrese una descripción de trabajo')
+    .max(300, 'La descripción no puede tener más de 300 caracteres'),
+});
+```
+
+Reference: `src/Components/appointments/forms/AppointmentForm.tsx:19`
+
+<Accordion title="Field Validation Rules">
+  - **Client Name**: Letters and spaces only, max 50 characters
+  - **Contact**: Bolivian phone format (starts with 6 or 7, 8 digits total)
+  - **Description**: Max 300 characters describing the work needed
+</Accordion>
+
+### Virtual Appointments
+
+For virtual appointments, you must provide a meeting link:
+
+```typescript
+const virtualSchema = baseSchema.extend({
+  modality: z.literal('virtual'),
+  meetingLink: z
+    .string()
+    .regex(
+      /^(https?:\/\/)?(meet\.google\.com|zoom\.us)\/[^\s]+$/,
+      'Ingrese un enlace válido de Meet o Zoom'
+    )
+    .nonempty('Ingrese un enlace de Meet o Zoom'),
+});
+```
+
+Reference: `src/Components/appointments/forms/AppointmentForm.tsx:38`
+
+**Supported platforms:**
+- Google Meet (`meet.google.com`)
+- Zoom (`zoom.us`)
+
+<Tip>
+  Create your meeting link in advance to speed up the booking process.
+</Tip>
+
+### Presential Appointments
+
+For in-person appointments, select a location on the map:
+
+```typescript
+const presentialSchema = baseSchema.extend({
+  modality: z.literal('presential'),
+  location: z
+    .object({
+      lat: z.number(),
+      lon: z.number(),
+      address: z.string().nonempty('Seleccione una ubicación'),
+    })
+    .nullable()
+    .refine((val) => val !== null, { message: 'Seleccione una ubicación' }),
+});
+```
+
+Reference: `src/Components/appointments/forms/AppointmentForm.tsx:49`
+
+**Location Selection:**
+
+1. Click "Seleccionar ubicación" button
+2. Use the interactive map to choose the service location
+3. Confirm your selection
+4. The address will be displayed for verification
+
+<Note>
+  Make sure the selected location is accurate. The fixer will use this address to provide the service.
+</Note>
+
+## Appointment Submission
+
+### Creating the Appointment
+
+When you submit the form, the following payload is sent:
+
+```typescript
+const payload = {
+  id_fixer: fixerId,
+  id_requester: requesterId,
+  selected_date: adjustedStart.toISOString().split('T')[0],
+  starting_time: adjustedStart.toISOString(),
+  finishing_time: adjustedEnd.toISOString(),
+  schedule_state: 'booked',
+  appointment_type: modality,
+  appointment_description: description,
+  current_requester_name: client,
+  current_requester_phone: contact,
+  link_id: modality === 'virtual' ? meetingLink : '',
+  display_name_location: modality === 'presential' ? place : '',
+  lat: modality === 'presential' ? location?.lat : null,
+  lon: modality === 'presential' ? location?.lon : null,
+};
+
+const res = await axios.post(
+  'https://servineo-backend-lorem.onrender.com/api/crud_create/appointments/create',
+  payload
+);
+```
+
+Reference: `src/Components/appointments/forms/AppointmentForm.tsx:184`
+
+### Appointment States
+
+Appointments can have the following states:
+
+- **booked**: Initial state when appointment is created
+- **confirmed**: Fixer has confirmed the appointment
+- **in_progress**: Service is currently being provided
+- **completed**: Service has been finished
+- **cancelled**: Appointment was cancelled by requester or fixer
+- **rescheduled**: Appointment date/time was changed
+
+## Managing Appointments
+
+### View Your Appointments
+
+Access your appointment list to see:
+
+```typescript
+export interface Appointment {
+  _id: string;
+  id_fixer: string;
+  id_requester: string;
+  selected_date: { $date: string };
+  current_requester_name: string;
+  appointment_type: string;
+  appointment_description: string;
+  link_id: string;
+  current_requester_phone: string;
+  starting_time: { $date: string };
+  finishing_time: { $date: string };
+  schedule_state: string;
+  display_name_location: string;
+  lat: string | null;
+  lon: string | null;
+  cancelled_fixer: boolean;
+  reprogram_reason: string;
+  createdAt: { $date: string };
+  updatedAt: { $date: string };
+}
+```
+
+Reference: `src/services/appointments.ts:3`
+
+### Fetch Appointments
+
+```typescript
+import { getAppointmentsByFixerId } from '@/services/appointments';
+
+// Get all appointments for a fixer
+const appointments = await getAppointmentsByFixerId(fixerId);
+```
+
+Reference: `src/services/appointments.ts:26`
+
+## Rescheduling Appointments
+
+If you need to change an appointment:
+
+<Steps>
+  <Step title="Access Appointment Details">
+    Navigate to your appointments list and select the one to reschedule
+  </Step>
+  <Step title="Click Reschedule">
+    Use the reschedule button to open the modification form
+  </Step>
+  <Step title="Select New Date/Time">
+    Choose a new available slot from the fixer's calendar
+  </Step>
+  <Step title="Provide Reason">
+    Optionally provide a reason for rescheduling
+  </Step>
+  <Step title="Confirm Changes">
+    Submit the reschedule request for fixer approval
+  </Step>
+</Steps>
+
+<Note>
+  Rescheduling requires the fixer's approval. You'll be notified once they confirm the new time.
+</Note>
+
+## Cancelling Appointments
+
+To cancel an appointment:
+
+1. Open the appointment details
+2. Click the cancel button
+3. Provide a cancellation reason (optional)
+4. Confirm the cancellation
+
+<Warning>
+  Cancellations may be subject to the fixer's cancellation policy. Check with your fixer about any applicable fees.
+</Warning>
+
+## Job Request Integration
+
+After completing an appointment, you can create a job request:
+
+```typescript
+import { createJobRequest } from '@/services/job-requests';
+
+const payload: CreateJobRequestPayload = {
+  title: string,
+  description: string,
+  location: {
+    type: 'Point',
+    coordinates: [lng, lat],
+  },
+  startTime: string,
+  endTime: string,
+  price: number,
+  fixerId: string,
+  requesterId: string,
+  appointmentId: string, // Link to original appointment
+};
+
+const result = await createJobRequest(payload, token);
+```
+
+Reference: `src/services/job-requests.ts:18`
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Be Specific" icon="file-lines">
+    Provide detailed descriptions of the work needed
+  </Card>
+  <Card title="Confirm Details" icon="circle-check">
+    Double-check date, time, and location before submitting
+  </Card>
+  <Card title="Respond Promptly" icon="clock">
+    Reply to fixer messages and confirmations quickly
+  </Card>
+  <Card title="Update Changes" icon="pen-to-square">
+    Notify the fixer as soon as possible if you need to reschedule
+  </Card>
+</CardGroup>
+
+## Appointment Notifications
+
+You'll receive notifications for:
+
+- Appointment confirmation
+- Fixer acceptance/rejection
+- Reschedule requests from fixer
+- Appointment reminders (24 hours before)
+- Appointment cancellations
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Payments" icon="wallet" href="/requesters/payments">
+    Learn how to manage payments for completed services
+  </Card>
+  <Card title="Rating & Reviews" icon="star" href="/requesters/rating-reviews">
+    Discover how to rate your experience after service completion
+  </Card>
+</CardGroup>

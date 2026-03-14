@@ -1,0 +1,143 @@
+---
+title: 'Fixer Overview'
+description: 'Learn about the fixer role and capabilities in Servineo'
+icon: 'wrench'
+---
+
+## What is a Fixer?
+
+A **Fixer** is a service professional on the Servineo platform who offers skilled services to customers. Fixers can create job offers, manage appointments, handle payments, and build their professional reputation.
+
+<Note>
+Fixers must complete a registration process and profile setup before they can start receiving job requests.
+</Note>
+
+## Key Capabilities
+
+<CardGroup cols={2}>
+  <Card title="Job Offers" icon="briefcase">
+    Create and manage your service offerings with photos, pricing, and descriptions
+  </Card>
+  
+  <Card title="Calendar Management" icon="calendar">
+    Control your availability and schedule appointments with customers
+  </Card>
+  
+  <Card title="Payment Processing" icon="wallet">
+    Manage earnings through the Fixer Wallet and multiple payment methods
+  </Card>
+  
+  <Card title="Profile & Portfolio" icon="user">
+    Build your professional profile with certifications, experience, and work samples
+  </Card>
+</CardGroup>
+
+## Fixer Dashboard
+
+The Fixer Dashboard is your central hub for managing all aspects of your service business. It provides access to:
+
+<Steps>
+  <Step title="Profile Management">
+    Update your description, contact information, and profile photo. The dashboard displays your completion status and service categories.
+    
+    ```typescript
+    // Location: src/app/[locale]/fixer/dashboard/page.tsx:69-97
+    const handleSaveDescription = async () => {
+      try {
+        if (!user._id) return;
+        const result = descriptionSchema.safeParse({ description: descriptionValue });
+        
+        if (!result.success) {
+          setDescriptionError(firstError.message);
+          return;
+        }
+        
+        await updateDescription({ id: user._id, description: descriptionValue });
+        setEditingDescription(false);
+      } catch (err) {
+        console.error('Error actualizando descripción:', err);
+      }
+    };
+    ```
+  </Step>
+  
+  <Step title="Service Offerings">
+    View and manage your job offers, certifications, experience, and portfolio through dedicated sections
+  </Step>
+  
+  <Step title="Work Location">
+    Set your service area using the integrated map location feature
+  </Step>
+  
+  <Step title="Statistics">
+    Track your performance metrics and job history
+  </Step>
+</Steps>
+
+## Profile Information
+
+Your fixer profile includes:
+
+- **Contact Details**: Email, phone number, and ID (CI)
+- **Services**: Categories of services you offer (Plumbing, Electrical, Carpentry, etc.)
+- **Payment Methods**: Accepted payment types (Cash, QR, Credit Card)
+- **Vehicle**: Whether you have your own transportation
+- **Location**: Your work area and service radius
+- **Portfolio**: Photos and descriptions of completed work
+- **Certifications**: Professional credentials and qualifications
+- **Experience**: Work history and expertise
+
+<Tip>
+Complete your profile 100% to increase visibility and trust with potential customers. A complete profile shows a green indicator badge.
+</Tip>
+
+## Profile Completion Status
+
+The system tracks your profile completion status:
+
+```typescript
+// Location: src/app/[locale]/fixer/dashboard/page.tsx:124-128
+{user.fixerProfile === 'completed' && (
+  <div
+    className='absolute bottom-0 right-0 h-6 w-6 bg-green-500 border-2 border-white rounded-full'
+    title='Perfil Completo'
+  ></div>
+)}
+```
+
+## Dashboard Sections
+
+The dashboard provides tab-based navigation for different aspects:
+
+| Section | Icon | Description |
+|---------|------|-------------|
+| Job Offers | Briefcase | Create and manage your service listings |
+| Certifications | Award | Add professional credentials |
+| Experience | Building | Document your work history |
+| Portfolio | Image | Showcase completed projects |
+| Location | Map Pin | Set your service area |
+| Statistics | Award | View performance metrics |
+
+<Warning>
+Make sure to keep your contact information and availability up to date to avoid missing job opportunities.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Become a Fixer" icon="user-plus" href="/fixers/becoming-fixer">
+    Learn how to register and complete your fixer profile
+  </Card>
+  
+  <Card title="Manage Job Offers" icon="briefcase" href="/fixers/managing-jobs">
+    Create and manage your service offerings
+  </Card>
+  
+  <Card title="Calendar & Scheduling" icon="calendar" href="/fixers/calendar-scheduling">
+    Control your availability and appointments
+  </Card>
+  
+  <Card title="Payments & Wallet" icon="wallet" href="/fixers/payments-wallet">
+    Manage earnings and payment methods
+  </Card>
+</CardGroup>

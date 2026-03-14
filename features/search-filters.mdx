@@ -1,0 +1,446 @@
+---
+title: 'Advanced Search & Filters'
+description: 'Comprehensive search and filtering system with real-time results'
+icon: 'filter'
+---
+
+## Overview
+
+Servineo features a powerful advanced search system that allows users to filter job offers by multiple criteria including location, price range, categories, ratings, and dates. The system uses RTK Query for efficient data fetching and state management.
+
+## Search Features
+
+<CardGroup cols={2}>
+  <Card title="Real-time Results" icon="bolt">
+    Instant search results with debounced queries for optimal performance
+  </Card>
+  <Card title="Multi-criteria Filtering" icon="sliders">
+    Filter by location, price, category, tags, ratings, and dates
+  </Card>
+  <Card title="URL Persistence" icon="link">
+    Search state persisted in URL for shareable search results
+  </Card>
+  <Card title="Session Storage" icon="floppy-disk">
+    Cached results for faster subsequent searches
+  </Card>
+</CardGroup>
+
+## Search Options
+
+The search system provides two specialized search modes:
+
+### Title-Only Search
+
+Search exclusively within job titles for more precise results.
+
+```tsx SearchCheckboxes.tsx
+'use client';
+
+import React from 'react';
+import { useTranslations } from 'next-intl';
+
+interface SearchCheckboxesProps {
+  titleOnly: boolean;
+  setTitleOnly: (value: boolean) => void;
+  exactWords: boolean;
+  setExactWords: (value: boolean) => void;
+}
+
+export function SearchCheckboxes({
+  titleOnly,
+  setTitleOnly,
+  exactWords,
+  setExactWords,
+}: SearchCheckboxesProps) {
+  const t = useTranslations('search');
+
+  return (
+    <div className='w-full bg-gray-100 border border-gray-200 rounded-lg p-4 mt-4'>
+      <div className='flex flex-col gap-3'>
+        <label className='flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded'>
+          <input
+            type='checkbox'
+            checked={titleOnly}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setTitleOnly(checked);
+              if (checked) setExactWords(false); // Mutual exclusion
+            }}
+            className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+          />
+          <span className='text-sm text-gray-700'>{t('titleOnly')}</span>
+        </label>
+
+        <label className='flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded'>
+          <input
+            type='checkbox'
+            checked={exactWords}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setExactWords(checked);
+              if (checked) setTitleOnly(false); // Mutual exclusion
+            }}
+            className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+          />
+          <span className='text-sm text-gray-700'>{t('exactWords')}</span>
+        </label>
+      </div>
+    </div>
+  );
+}
+```
+
+<Note>
+`titleOnly` and `exactWords` are mutually exclusive options to ensure search precision.
+</Note>
+
+## Price Range Filtering
+
+The price range filter uses RTK Query to fetch available price ranges from the API and caches them in sessionStorage.
+
+<CodeGroup>
+```tsx PriceRangeList.tsx
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
+import { useGetPriceRangesQuery } from '@/app/redux/services/jobOffersApi';
+
+type RangeItem = { label: string; min: number | null; max: number | null };
+
+interface PriceRangeListProps {
+  onFilterChange?: (filters: { priceRanges: string[]; priceKey?: string }) => void;
+  clearSignal?: number;
+}
+
+const PriceRangeList: React.FC<PriceRangeListProps> = ({ onFilterChange, clearSignal }) => {
+  const t = useTranslations('advancedSearch');
+  const [selectedRanges, setSelectedRanges] = useState<string[]>([]);
+  const [ranges, setRanges] = useState<RangeItem[]>([]);
+
+  // RTK Query for fetching price ranges
+  const { data: priceRangesData, isLoading, error: queryError } = useGetPriceRangesQuery();
+
+  // Load cached ranges from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('adv_price_ranges');
+      if (cached) {
+        const parsed = JSON.parse(cached) as RangeItem[];
+        if (Array.isArray(parsed) && parsed.length) {
+          setRanges(parsed);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading cache:', err);
+    }
+  }, []);
+
+  // Sync with RTK Query response
+  useEffect(() => {
+    if (priceRangesData) {
+      const items: RangeItem[] = Array.isArray(priceRangesData.ranges)
+        ? priceRangesData.ranges.map((r) => ({
+            label: r.label,
+            min: r.min ?? null,
+            max: r.max ?? null,
+          }))
+        : [];
+
+      setRanges(items);
+      
+      // Cache in sessionStorage
+      try {
+        sessionStorage.setItem('adv_price_ranges', JSON.stringify(items));
+      } catch (err) {
+        console.error('Error saving cache:', err);
+      }
+    }
+  }, [priceRangesData]);
+
+  const handleCheckboxChange = (rangeValue: string) => {
+    const newSelectedRanges = selectedRanges.includes(rangeValue)
+      ? selectedRanges.filter((range) => range !== rangeValue)
+      : [...selectedRanges, rangeValue];
+
+    setSelectedRanges(newSelectedRanges);
+    const priceKey = newSelectedRanges.length === 1 ? newSelectedRanges[0] : '';
+    onFilterChange?.({ priceRanges: newSelectedRanges, priceKey });
+  };
+
+  // Reset on clear signal
+  useEffect(() => {
+    if (typeof clearSignal === 'undefined') return;
+    setSelectedRanges([]);
+    onFilterChange?.({ priceRanges: [], priceKey: '' });
+  }, [clearSignal]);
+
+  if (isLoading && ranges.length === 0) {
+    return <div className='p-4 text-sm text-gray-500'>{t('resultsCounter.loading')}</div>;
+  }
+
+  return (
+    <div className='w-full border border-gray-300 rounded-lg overflow-hidden'>
+      <div className='max-h-64 overflow-y-auto'>
+        {ranges.map((r, index) => (
+          <label
+            key={`${r.label}-${index}`}
+            className='flex items-center px-4 py-3 cursor-pointer hover:bg-gray-50'
+          >
+            <input
+              type='checkbox'
+              checked={selectedRanges.includes(r.label)}
+              onChange={() => handleCheckboxChange(r.label)}
+              className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2'
+            />
+            <span className='ml-3 text-sm text-gray-700 capitalize'>
+              {r.label.replace(/\$\s*([0-9]+(?:\.[0-9]+)?)/g, '$1bs')}
+            </span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+<Info>
+Price ranges are fetched from the API and cached locally to minimize network requests and improve performance.
+</Info>
+
+## Advanced Search Logic
+
+The `useAdvSearchLogic` hook manages the complete search state and integrates with RTK Query.
+
+<Tabs>
+  <Tab title="Filter State">
+    ```typescript
+    interface FilterStateLocal {
+      range: string[];           // Fixer ranges
+      city: string[];            // City filters
+      category: string[];        // Job categories
+      tags: string[];            // Additional tags
+      priceRanges: string[];     // Selected price ranges
+      minPrice: number | null;   // Minimum price
+      maxPrice: number | null;   // Maximum price
+    }
+    ```
+  </Tab>
+  <Tab title="Hook Implementation">
+    ```typescript useAdvSearchLogic.ts
+    export default function useAdvSearchLogic() {
+      const [searchQuery, setSearchQuery] = useState('');
+      const [titleOnly, setTitleOnlyState] = useState(false);
+      const [exactWords, setExactWords] = useState(false);
+      const [selectedRanges, setSelectedRanges] = useState<string[]>([]);
+      const [selectedCity, setSelectedCity] = useState<string[]>([]);
+      const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
+      const [selectedPriceKey, setSelectedPriceKey] = useState<string>('');
+      const [resultsCount, setResultsCount] = useState<number | null>(null);
+
+      // RTK Query: lazy query for results counter
+      const [triggerGetOffers, { data: offersData, isLoading }] = 
+        useLazyGetOffersQuery();
+
+      // Debounced fetch when filters change
+      useEffect(() => {
+        const { minPrice, maxPrice } = parsePriceRange(selectedPriceKey);
+        const apiFilters = {
+          range: selectedRanges,
+          city: selectedCity,
+          category: selectedJobs,
+          tags: selectedTags,
+          minPrice,
+          maxPrice,
+        };
+
+        const timer = window.setTimeout(() => {
+          triggerGetOffers({
+            search: searchQuery ?? '',
+            filters: apiFilters,
+            sortBy: selectedDateFilter,
+            rating: selectedRating ?? undefined,
+            page: 1,
+            limit: 1,
+            titleOnly: titleOnly ?? false,
+            exact: exactWords ?? false,
+          });
+        }, 150); // 150ms debounce
+
+        return () => clearTimeout(timer);
+      }, [
+        searchQuery,
+        selectedRanges,
+        selectedCity,
+        selectedJobs,
+        selectedPriceKey,
+        titleOnly,
+        exactWords,
+      ]);
+
+      // Update results count when data arrives
+      useEffect(() => {
+        if (offersData) {
+          setResultsCount(offersData.total);
+        }
+      }, [offersData]);
+
+      return {
+        searchQuery,
+        titleOnly,
+        exactWords,
+        selectedRanges,
+        selectedCity,
+        resultsCount,
+        loading: isLoading,
+        handleSearch,
+        // ... more handlers
+      };
+    }
+    ```
+  </Tab>
+  <Tab title="URL Persistence">
+    ```typescript
+    const handleSearch = (query: string) => {
+      const params = new URLSearchParams();
+      if (query.trim()) params.set('search', query.trim());
+      if (titleOnly) params.set('titleOnly', 'true');
+      if (exactWords) params.set('exact', 'true');
+      
+      selectedRanges.forEach((r) => params.append('range', r));
+      if (selectedCity.length) params.set('city', selectedCity.join(','));
+      if (selectedJobs.length) params.set('category', selectedJobs.join(','));
+      
+      const { minPrice, maxPrice } = parsePriceRange(selectedPriceKey);
+      if (minPrice != null) params.set('minPrice', String(minPrice));
+      if (maxPrice != null) params.set('maxPrice', String(maxPrice));
+      if (selectedRating != null) params.set('rating', String(selectedRating));
+      
+      params.set('page', '1');
+      params.set('limit', '10');
+
+      // Navigate to results page
+      window.location.href = `/resultsAdvSearch?${params.toString()}`;
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Filter Types
+
+### Location Filters
+
+```typescript
+const handleCityChange = (city: string) => {
+  setSelectedCity((prev) => {
+    const newCity = prev.includes(city) 
+      ? prev.filter((c) => c !== city) 
+      : [...prev, city];
+    updateSearchOnStateChange({ newCity });
+    return newCity;
+  });
+};
+```
+
+### Category Filters
+
+```typescript
+const handleJobChange = (job: string) => {
+  setSelectedJobs((prev) => {
+    const newJobs = prev.includes(job) 
+      ? prev.filter((j) => j !== job) 
+      : [...prev, job];
+    updateSearchOnStateChange({ newJobs });
+    return newJobs;
+  });
+};
+```
+
+### Rating Filters
+
+```typescript
+const [selectedRating, setSelectedRating] = useState<number | null>(null);
+
+// Clamp rating between 1 and 5
+const clampedRating = Math.min(5, Math.max(1, selectedRating));
+```
+
+## Performance Optimizations
+
+<CardGroup cols={2}>
+  <Card title="Debounced Queries" icon="clock">
+    150ms debounce on search input prevents excessive API calls
+  </Card>
+  <Card title="Cached Results" icon="database">
+    SessionStorage caching reduces redundant network requests
+  </Card>
+  <Card title="Lazy Loading" icon="spinner">
+    RTK Query lazy loading for on-demand data fetching
+  </Card>
+  <Card title="URL State" icon="arrow-up-right-from-square">
+    Search state persisted in URL for browser back/forward support
+  </Card>
+</CardGroup>
+
+## Filter State Management
+
+Filters are managed using Redux Toolkit with the `filterSlice`:
+
+```typescript filterSlice.ts
+interface FilterState {
+  searchQuery: string;
+  recentSearches: string[];
+  selectedFixerNames: string[];
+  selectedCities: string[];
+  selectedJobTypes: string[];
+  isAutoSelectedJobType: boolean;
+  isAutoSelectedCity: boolean;
+  sidebarOpen: boolean;
+}
+
+export const filterSlice = createSlice({
+  name: 'filters',
+  initialState,
+  reducers: {
+    setSearchQuery: (state, action: PayloadAction<string>) => {
+      state.searchQuery = action.payload;
+    },
+    addRecentSearch: (state, action: PayloadAction<string>) => {
+      const search = action.payload.trim();
+      if (search) {
+        state.recentSearches = [
+          search, 
+          ...state.recentSearches.filter((s) => s !== search)
+        ].slice(0, 5);
+      }
+    },
+    toggleCity: (state, action: PayloadAction<string>) => {
+      const city = action.payload;
+      state.selectedCities = state.selectedCities.includes(city)
+        ? state.selectedCities.filter((c) => c !== city)
+        : [...state.selectedCities, city];
+      state.isAutoSelectedCity = false;
+    },
+    resetFilters: (state) => {
+      state.selectedFixerNames = [];
+      state.selectedCities = [];
+      state.selectedJobTypes = [];
+      state.searchQuery = '';
+    },
+  },
+});
+```
+
+## Best Practices
+
+1. **Debounce User Input**: Prevent excessive API calls by debouncing search queries
+2. **Cache Strategically**: Use sessionStorage for temporary data and localStorage for persistent preferences
+3. **URL as Source of Truth**: Persist filter state in URL parameters for shareability
+4. **Progressive Enhancement**: Load cached data first, then fetch fresh data
+5. **Error Boundaries**: Implement fallbacks when API calls fail
+
+## Related Documentation
+
+- [Finding Services](/requesters/finding-services)
+- [Jobs API](/api/jobs/get-jobs)

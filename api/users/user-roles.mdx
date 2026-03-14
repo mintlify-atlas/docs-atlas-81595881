@@ -1,0 +1,316 @@
+---
+title: 'User Roles'
+description: 'Manage user roles and permissions'
+icon: 'user-shield'
+---
+
+## Overview
+
+Servineo uses role-based access control (RBAC) to manage user permissions. There are three primary user roles:
+
+<CardGroup cols={3}>
+  <Card title="Requester" icon="user">
+    Users who request services from fixers
+  </Card>
+  <Card title="Fixer" icon="wrench">
+    Service providers who fulfill requests
+  </Card>
+  <Card title="Admin" icon="shield">
+    Platform administrators with full access
+  </Card>
+</CardGroup>
+
+## Role Types
+
+```typescript
+type UserRole = 'requester' | 'fixer' | 'admin';
+```
+
+## Get Users by Role
+
+Retrieve all users with a specific role.
+
+### Endpoint
+
+```
+GET /api/user-profiles/role/{role}
+```
+
+### Path Parameters
+
+<ParamField path="role" type="string" required>
+  The role to filter by: `requester`, `fixer`, or `admin`
+</ParamField>
+
+### Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.servineo.com/api/user-profiles/role/fixer \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+```typescript TypeScript
+import { useGetUsersByRoleQuery } from '@/app/redux/services/userApi';
+
+// Get all fixers
+const { data: fixers, isLoading } = useGetUsersByRoleQuery('fixer');
+
+// Get all requesters
+const { data: requesters } = useGetUsersByRoleQuery('requester');
+```
+
+</CodeGroup>
+
+### Response
+
+```json
+[
+  {
+    "user": {
+      "id": "user123",
+      "name": "Juan Pérez",
+      "email": "juan@example.com",
+      "phone": "+595981234567",
+      "role": "fixer",
+      "urlPhoto": "https://example.com/photos/juan.jpg"
+    },
+    "profile": {
+      "ci": "1234567",
+      "services": [
+        {"id": "plomeria", "name": "Plomería"},
+        {"id": "electricidad", "name": "Electricidad"}
+      ],
+      "location": {
+        "lat": -25.2637,
+        "lng": -57.5759,
+        "address": "Asunción, Paraguay"
+      },
+      "status": "approved",
+      "createdAt": "2024-01-15T10:00:00.000Z"
+    }
+  }
+]
+```
+
+## Role Permissions
+
+### Requester Permissions
+
+<AccordionGroup>
+  <Accordion title="Service Requests">
+    - Create job requests
+    - View their own requests
+    - Cancel pending requests
+    - Rate completed services
+  </Accordion>
+  
+  <Accordion title="Appointments">
+    - Schedule appointments with fixers
+    - View appointment details
+    - Reschedule appointments
+    - Cancel appointments
+  </Accordion>
+  
+  <Accordion title="Payments">
+    - Add payment methods
+    - Process payments
+    - View payment history
+  </Accordion>
+</AccordionGroup>
+
+### Fixer Permissions
+
+<AccordionGroup>
+  <Accordion title="Job Management">
+    - Create job offers
+    - Update job offers
+    - Toggle job availability
+    - Delete job offers
+    - View assigned jobs
+  </Accordion>
+  
+  <Accordion title="Appointments">
+    - View appointments
+    - Accept/decline appointments
+    - Update appointment status
+    - Mark jobs as complete
+  </Accordion>
+  
+  <Accordion title="Profile">
+    - Update service offerings
+    - Manage portfolio
+    - Add certifications
+    - Set work location
+    - Configure payment methods
+  </Accordion>
+</AccordionGroup>
+
+### Admin Permissions
+
+<AccordionGroup>
+  <Accordion title="User Management">
+    - View all users
+    - Approve fixer applications
+    - Suspend/activate users
+    - Modify user roles
+  </Accordion>
+  
+  <Accordion title="Platform Monitoring">
+    - View system statistics
+    - Track appointments
+    - Monitor payment transactions
+    - Access analytics dashboard
+  </Accordion>
+  
+  <Accordion title="Content Moderation">
+    - Review job offers
+    - Moderate user content
+    - Handle dispute resolution
+  </Accordion>
+</AccordionGroup>
+
+## User Profile Structure
+
+### IUserProfile Type
+
+```typescript
+interface IUserProfile {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    role: 'fixer' | 'requester';
+    urlPhoto?: string;
+  };
+  profile: {
+    ci: string;
+    photoUrl?: string;
+    location?: {
+      lat: number;
+      lng: number;
+      address?: string;
+    } | null;
+    services: Array<{
+      id: string;
+      name: string;
+      custom?: boolean;
+    }>;
+    selectedServiceIds: string[];
+    paymentMethods: Array<{
+      type: string;
+      accountInfo?: string;
+    }>;
+    experiences: Array<{
+      id: string;
+      title: string;
+      description: string;
+      years: number;
+      images?: Array<{
+        id: string;
+        url: string;
+        name: string;
+        size: number;
+        type: string;
+      }>;
+    }>;
+    vehicle?: {
+      hasVehicle?: boolean;
+      type?: string;
+      details?: string;
+    };
+    terms: {
+      accepted: boolean;
+      acceptedAt?: Date;
+    };
+    additionalInfo?: {
+      bio?: string;
+      languages?: string[];
+      availability?: {
+        monday: boolean;
+        tuesday: boolean;
+        wednesday: boolean;
+        thursday: boolean;
+        friday: boolean;
+        saturday: boolean;
+        sunday: boolean;
+      };
+      hourlyRate?: number;
+    };
+    status: 'pending' | 'approved' | 'rejected';
+    createdAt: Date;
+    updatedAt: Date;
+  };
+}
+```
+
+## Create User Profile
+
+Create a new user profile with role assignment.
+
+### Endpoint
+
+```
+POST /api/user-profiles
+```
+
+### Request Body
+
+<ParamField body="user" type="object" required>
+  User basic information
+</ParamField>
+
+<ParamField body="profile" type="object" required>
+  Profile details including role-specific information
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST https://api.servineo.com/api/user-profiles \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user": {
+      "name": "Juan Pérez",
+      "email": "juan@example.com",
+      "phone": "+595981234567",
+      "role": "fixer"
+    },
+    "profile": {
+      "ci": "1234567",
+      "services": [
+        {"id": "plomeria", "name": "Plomería"}
+      ],
+      "terms": {
+        "accepted": true
+      }
+    }
+  }'
+```
+
+## Get All User Profiles
+
+Retrieve all user profiles in the system.
+
+### Endpoint
+
+```
+GET /api/user-profiles
+```
+
+### Example Request
+
+```typescript
+import { useGetUserProfilesQuery } from '@/app/redux/services/userApi';
+
+const { data: profiles, isLoading } = useGetUserProfilesQuery();
+```
+
+## Related Endpoints
+
+- [Get User](/api/users/get-user)
+- [Update User](/api/users/update-user)

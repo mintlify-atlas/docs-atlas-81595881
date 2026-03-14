@@ -1,0 +1,485 @@
+---
+title: 'Multi-Language Support'
+description: 'Internationalization with next-intl for English and Spanish locales'
+icon: 'language'
+---
+
+## Overview
+
+Servineo implements comprehensive internationalization (i18n) using `next-intl`, supporting both English and Spanish languages. The system provides seamless language switching with route-based locales and type-safe translation keys.
+
+## Supported Languages
+
+<CardGroup cols={2}>
+  <Card title="English" icon="flag-usa">
+    Default locale with complete translations
+  </Card>
+  <Card title="Spanish" icon="flag" color="#C60B1E">
+    Full Spanish (Español) translation support
+  </Card>
+</CardGroup>
+
+## Configuration
+
+The routing configuration defines supported locales and the default language:
+
+```typescript routing.ts
+import { defineRouting } from 'next-intl/routing';
+
+export const routing = defineRouting({
+  // List of all supported locales
+  locales: ['en', 'es'],
+  
+  // Default locale when no locale matches
+  defaultLocale: 'en',
+});
+```
+
+## Translation Files
+
+Translations are stored in JSON files under the `/messages` directory:
+
+<Tabs>
+  <Tab title="English (en.json)">
+    ```json messages/en.json
+    {
+      "HeroSection": {
+        "title": "Find the perfect professional",
+        "subtitle": "We connect your home with verified experts in your city.",
+        "placeholder": "what service do you need?",
+        "search": "Search",
+        "professional": "professionals",
+        "Projects completed": "Projects completed",
+        "Overall grade": "Overall grade"
+      },
+      "Categories": {
+        "Todos": "All",
+        "Albañil": "Mason",
+        "Carpintero": "Carpenter",
+        "Electricista": "Electrician",
+        "Fontanero": "Plumber",
+        "Pintor": "Painter"
+      },
+      "jobOffers": {
+        "pageTitle": "Job Offers",
+        "available": "available",
+        "backToHome": "Home",
+        "loading": "Loading offers...",
+        "viewModes": {
+          "list": "List",
+          "map": "Map",
+          "grid": "Grid"
+        },
+        "map": {
+          "yourLocation": "Your location",
+          "jobOffers": "Job offers",
+          "mapDetails": "Map details"
+        }
+      },
+      "search": {
+        "placeholder": "What service do you need?",
+        "buttonSearch": "Search",
+        "recentSearches": "Recent searches",
+        "advancedSearch": "Advanced Search",
+        "titleOnly": "Search only in job title",
+        "exactWords": "Exact words",
+        "price": "Price",
+        "mostRecent": "Most recent",
+        "oldest": "Oldest"
+      },
+      "advancedSearch": {
+        "pageTitle": "Advanced Search",
+        "resultsCounter": {
+          "loading": "Loading...",
+          "results": "results",
+          "noResults": "No results found"
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Spanish (es.json)">
+    ```json messages/es.json
+    {
+      "HeroSection": {
+        "title": "Encuentra el profesional perfecto",
+        "subtitle": "Conectamos tu hogar con expertos verificados en tu ciudad",
+        "placeholder": "¿Que servicio necesitas?",
+        "search": "Buscar",
+        "professional": "profesionales",
+        "Projects completed": "Trabajos completados",
+        "Overall grade": "Calificación Promedio"
+      },
+      "Categories": {
+        "Todos": "Todos",
+        "Albañil": "Albañil",
+        "Carpintero": "Carpintero",
+        "Electricista": "Electricista",
+        "Fontanero": "Fontanero",
+        "Pintor": "Pintor"
+      },
+      "jobOffers": {
+        "pageTitle": "Ofertas de Trabajo",
+        "available": "disponibles",
+        "backToHome": "Inicio",
+        "loading": "Cargando ofertas...",
+        "viewModes": {
+          "list": "Lista",
+          "map": "Mapa",
+          "grid": "Cuadrícula"
+        },
+        "map": {
+          "yourLocation": "Tu ubicación",
+          "jobOffers": "Ofertas de trabajo",
+          "mapDetails": "Detalles del mapa"
+        }
+      },
+      "search": {
+        "placeholder": "¿Qué servicio necesitas?",
+        "buttonSearch": "Buscar",
+        "recentSearches": "Búsquedas recientes",
+        "advancedSearch": "Advanced search",
+        "titleOnly": "Buscar solo en el título de la Oferta de Trabajo",
+        "exactWords": "Palabras Exactas",
+        "price": "Precio",
+        "mostRecent": "Los más recientes",
+        "oldest": "Los más antiguos"
+      },
+      "advancedSearch": {
+        "pageTitle": "Búsqueda Avanzada",
+        "resultsCounter": {
+          "loading": "Cargando...",
+          "results": "resultados",
+          "noResults": "No se encontraron resultados"
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Using Translations
+
+The `useTranslations` hook provides type-safe access to translations:
+
+<CodeGroup>
+```tsx Basic Usage
+'use client';
+
+import { useTranslations } from 'next-intl';
+
+export function SearchComponent() {
+  const t = useTranslations('search');
+
+  return (
+    <div>
+      <input 
+        placeholder={t('placeholder')} 
+        className='w-full px-4 py-2'
+      />
+      <button>{t('buttonSearch')}</button>
+    </div>
+  );
+}
+```
+
+```tsx Nested Keys
+'use client';
+
+import { useTranslations } from 'next-intl';
+
+export function JobOffersMap() {
+  const t = useTranslations('jobOffers.map');
+
+  return (
+    <div className='map-panel'>
+      <h3>{t('mapDetails')}</h3>
+      <div>
+        <span>{t('yourLocation')}</span>
+        <span>{t('jobOffers')}</span>
+      </div>
+    </div>
+  );
+}
+```
+
+```tsx Multiple Namespaces
+'use client';
+
+import { useTranslations } from 'next-intl';
+
+export function AdvancedSearchPage() {
+  const tSearch = useTranslations('search');
+  const tAdvanced = useTranslations('advancedSearch');
+
+  return (
+    <div>
+      <h1>{tAdvanced('pageTitle')}</h1>
+      <input placeholder={tSearch('placeholder')} />
+      <label>
+        <input type='checkbox' />
+        {tSearch('titleOnly')}
+      </label>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+## Routing Integration
+
+Next-intl integrates with Next.js routing for locale-based URLs:
+
+```typescript navigation.ts
+import { createLocalizedPathnamesNavigation } from 'next-intl/navigation';
+import { routing } from './routing';
+
+export const { Link, redirect, usePathname, useRouter } = 
+  createLocalizedPathnamesNavigation(routing);
+```
+
+### Usage in Components
+
+```tsx
+import { Link, useRouter } from '@/i18n/navigation';
+
+export function Navigation() {
+  const router = useRouter();
+
+  return (
+    <nav>
+      {/* Automatic locale prefix */}
+      <Link href='/job-offers'>Job Offers</Link>
+      <Link href='/advanced-search'>Advanced Search</Link>
+      
+      <button onClick={() => router.push('/profile')}>
+        Profile
+      </button>
+    </nav>
+  );
+}
+```
+
+## Language Switcher
+
+Implement a language switcher to allow users to change locales:
+
+```tsx LanguageSwitcher.tsx
+'use client';
+
+import { useLocale } from 'next-intl';
+import { useRouter, usePathname } from '@/i18n/navigation';
+
+export function LanguageSwitcher() {
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const switchLocale = (newLocale: string) => {
+    router.replace(pathname, { locale: newLocale });
+  };
+
+  return (
+    <div className='flex gap-2'>
+      <button
+        onClick={() => switchLocale('en')}
+        className={`px-3 py-1 rounded ${
+          locale === 'en' ? 'bg-primary text-white' : 'bg-gray-200'
+        }`}
+      >
+        English
+      </button>
+      <button
+        onClick={() => switchLocale('es')}
+        className={`px-3 py-1 rounded ${
+          locale === 'es' ? 'bg-primary text-white' : 'bg-gray-200'
+        }`}
+      >
+        Español
+      </button>
+    </div>
+  );
+}
+```
+
+## Server-Side Configuration
+
+Configure next-intl in your Next.js middleware:
+
+```typescript middleware.ts
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+
+export default createMiddleware(routing);
+
+export const config = {
+  matcher: ['/', '/(en|es)/:path*']
+};
+```
+
+## Request Configuration
+
+Configure how next-intl retrieves the locale for server components:
+
+```typescript request.ts
+import { getRequestConfig } from 'next-intl/server';
+import { routing } from './routing';
+
+export default getRequestConfig(async ({ requestLocale }) => {
+  let locale = await requestLocale;
+
+  // Validate that the incoming locale parameter is valid
+  if (!locale || !routing.locales.includes(locale as any)) {
+    locale = routing.defaultLocale;
+  }
+
+  return {
+    locale,
+    messages: (await import(`../messages/${locale}.json`)).default,
+  };
+});
+```
+
+## Translation Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Namespace Organization" icon="folder-tree">
+    Group related translations in namespaces (e.g., 'search', 'jobOffers')
+  </Card>
+  <Card title="Consistent Keys" icon="key">
+    Use camelCase for keys and maintain consistency across locales
+  </Card>
+  <Card title="Pluralization" icon="list-ol">
+    Handle singular/plural forms correctly in both languages
+  </Card>
+  <Card title="Context" icon="message">
+    Provide context-specific translations rather than generic terms
+  </Card>
+</CardGroup>
+
+## Dynamic Translations
+
+For dynamic content, use interpolation:
+
+```tsx
+// In translation file
+{
+  "welcome": "Welcome, {name}!",
+  "itemsCount": "You have {count} items"
+}
+
+// In component
+const t = useTranslations('messages');
+
+<p>{t('welcome', { name: userName })}</p>
+<p>{t('itemsCount', { count: items.length })}</p>
+```
+
+## Rich Text Formatting
+
+Support rich text with next-intl's formatting:
+
+```tsx
+const t = useTranslations('messages');
+
+<p>
+  {t.rich('agreement', {
+    link: (chunks) => <a href='/terms'>{chunks}</a>,
+    strong: (chunks) => <strong>{chunks}</strong>
+  })}
+</p>
+```
+
+## Date and Number Formatting
+
+Format dates and numbers according to locale:
+
+```tsx
+import { useFormatter } from 'next-intl';
+
+export function DateDisplay({ date }: { date: Date }) {
+  const format = useFormatter();
+
+  return (
+    <div>
+      <p>{format.dateTime(date, { dateStyle: 'long' })}</p>
+      <p>{format.number(1234.56, { style: 'currency', currency: 'USD' })}</p>
+    </div>
+  );
+}
+```
+
+## Testing Translations
+
+Test components with different locales:
+
+```tsx
+import { NextIntlClientProvider } from 'next-intl';
+import messages from '@/messages/en.json';
+
+function TestWrapper({ children }) {
+  return (
+    <NextIntlClientProvider locale='en' messages={messages}>
+      {children}
+    </NextIntlClientProvider>
+  );
+}
+```
+
+## Common Patterns
+
+### Search Checkboxes Example
+
+Real implementation from the codebase:
+
+```tsx SearchCheckboxes.tsx
+'use client';
+
+import { useTranslations } from 'next-intl';
+
+export function SearchCheckboxes({
+  titleOnly,
+  setTitleOnly,
+  exactWords,
+  setExactWords,
+}: SearchCheckboxesProps) {
+  const t = useTranslations('search');
+
+  return (
+    <div className='w-full bg-gray-100 border border-gray-200 rounded-lg p-4 mt-4'>
+      <label className='flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded'>
+        <input
+          type='checkbox'
+          checked={titleOnly}
+          onChange={(e) => setTitleOnly(e.target.checked)}
+          className='w-4 h-4 text-blue-600 border-gray-300 rounded'
+        />
+        <span className='text-sm text-gray-700'>{t('titleOnly')}</span>
+      </label>
+
+      <label className='flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded'>
+        <input
+          type='checkbox'
+          checked={exactWords}
+          onChange={(e) => setExactWords(e.target.checked)}
+          className='w-4 h-4 text-blue-600 border-gray-300 rounded'
+        />
+        <span className='text-sm text-gray-700'>{t('exactWords')}</span>
+      </label>
+    </div>
+  );
+}
+```
+
+## Installation
+
+Install next-intl:
+
+```bash
+npm install next-intl
+```
+
+## Related Documentation
+
+- [next-intl Documentation](https://next-intl-docs.vercel.app/)
+- [Next.js i18n Routing](https://nextjs.org/docs/app/building-your-application/routing/internationalization)

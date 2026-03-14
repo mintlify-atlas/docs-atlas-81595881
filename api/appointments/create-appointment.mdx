@@ -1,0 +1,350 @@
+---
+title: 'Create Appointment'
+description: 'Create a new appointment with a fixer'
+api: 'POST /api/appointments'
+---
+
+## Overview
+
+Create a new appointment to schedule service with a fixer.
+
+## Endpoint
+
+```
+POST /api/appointments
+```
+
+## Request Body
+
+<ParamField body="id_fixer" type="string" required>
+  Unique identifier of the fixer
+</ParamField>
+
+<ParamField body="id_requester" type="string" required>
+  Unique identifier of the requester
+</ParamField>
+
+<ParamField body="selected_date" type="string" required>
+  Selected date for the appointment (ISO 8601 format)
+</ParamField>
+
+<ParamField body="current_requester_name" type="string" required>
+  Name of the person requesting the service
+</ParamField>
+
+<ParamField body="appointment_type" type="string" required>
+  Type of service (e.g., "plomeria", "electricidad")
+</ParamField>
+
+<ParamField body="appointment_description" type="string" required>
+  Detailed description of the work needed
+</ParamField>
+
+<ParamField body="current_requester_phone" type="string" required>
+  Contact phone number
+</ParamField>
+
+<ParamField body="starting_time" type="string" required>
+  Appointment start time (ISO 8601 format)
+</ParamField>
+
+<ParamField body="finishing_time" type="string" required>
+  Appointment end time (ISO 8601 format)
+</ParamField>
+
+<ParamField body="display_name_location" type="string" required>
+  Human-readable location name/address
+</ParamField>
+
+<ParamField body="lat" type="string">
+  Latitude coordinate of the location
+</ParamField>
+
+<ParamField body="lon" type="string">
+  Longitude coordinate of the location
+</ParamField>
+
+<ParamField body="link_id" type="string">
+  Optional link to related resources (job offers, etc.)
+</ParamField>
+
+## Example Request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.servineo.com/api/appointments \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_fixer": "fixer123",
+    "id_requester": "requester456",
+    "selected_date": "2024-03-15T00:00:00.000Z",
+    "current_requester_name": "Pedro Martínez",
+    "appointment_type": "plomeria",
+    "appointment_description": "Reparación de fuga de agua en la cocina",
+    "current_requester_phone": "+595981234567",
+    "starting_time": "2024-03-15T09:00:00.000Z",
+    "finishing_time": "2024-03-15T12:00:00.000Z",
+    "display_name_location": "Av. Mariscal López 123, Asunción",
+    "lat": "-25.2637",
+    "lon": "-57.5759",
+    "link_id": "offer789"
+  }'
+```
+
+```typescript TypeScript
+interface CreateAppointmentPayload {
+  id_fixer: string;
+  id_requester: string;
+  selected_date: string;
+  current_requester_name: string;
+  appointment_type: string;
+  appointment_description: string;
+  current_requester_phone: string;
+  starting_time: string;
+  finishing_time: string;
+  display_name_location: string;
+  lat?: string;
+  lon?: string;
+  link_id?: string;
+}
+
+const payload: CreateAppointmentPayload = {
+  id_fixer: 'fixer123',
+  id_requester: 'requester456',
+  selected_date: '2024-03-15T00:00:00.000Z',
+  current_requester_name: 'Pedro Martínez',
+  appointment_type: 'plomeria',
+  appointment_description: 'Reparación de fuga de agua en la cocina',
+  current_requester_phone: '+595981234567',
+  starting_time: '2024-03-15T09:00:00.000Z',
+  finishing_time: '2024-03-15T12:00:00.000Z',
+  display_name_location: 'Av. Mariscal López 123, Asunción',
+  lat: '-25.2637',
+  lon: '-57.5759',
+  link_id: 'offer789'
+};
+
+const response = await fetch('https://api.servineo.com/api/appointments', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(payload)
+});
+
+const appointment = await response.json();
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.servineo.com/api/appointments', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    id_fixer: 'fixer123',
+    id_requester: 'requester456',
+    selected_date: '2024-03-15T00:00:00.000Z',
+    current_requester_name: 'Pedro Martínez',
+    appointment_type: 'plomeria',
+    appointment_description: 'Reparación de fuga de agua en la cocina',
+    current_requester_phone: '+595981234567',
+    starting_time: '2024-03-15T09:00:00.000Z',
+    finishing_time: '2024-03-15T12:00:00.000Z',
+    display_name_location: 'Av. Mariscal López 123, Asunción',
+    lat: '-25.2637',
+    lon: '-57.5759'
+  })
+});
+
+const appointment = await response.json();
+```
+
+</CodeGroup>
+
+## Response
+
+<ResponseField name="_id" type="string">
+  Unique appointment identifier
+</ResponseField>
+
+<ResponseField name="id_fixer" type="string">
+  Fixer's ID
+</ResponseField>
+
+<ResponseField name="id_requester" type="string">
+  Requester's ID
+</ResponseField>
+
+<ResponseField name="selected_date" type="object">
+  Selected date in MongoDB format
+</ResponseField>
+
+<ResponseField name="starting_time" type="object">
+  Start time in MongoDB format
+</ResponseField>
+
+<ResponseField name="finishing_time" type="object">
+  End time in MongoDB format
+</ResponseField>
+
+<ResponseField name="schedule_state" type="string">
+  Initial state: `booked`
+</ResponseField>
+
+<ResponseField name="cancelled_fixer" type="boolean">
+  Whether cancelled by fixer (initially `false`)
+</ResponseField>
+
+<ResponseField name="createdAt" type="object">
+  Creation timestamp
+</ResponseField>
+
+<ResponseField name="updatedAt" type="object">
+  Last update timestamp
+</ResponseField>
+
+## Example Response
+
+```json
+{
+  "_id": "appt123",
+  "id_fixer": "fixer123",
+  "id_requester": "requester456",
+  "selected_date": {
+    "$date": "2024-03-15T00:00:00.000Z"
+  },
+  "current_requester_name": "Pedro Martínez",
+  "appointment_type": "plomeria",
+  "appointment_description": "Reparación de fuga de agua en la cocina",
+  "link_id": "offer789",
+  "current_requester_phone": "+595981234567",
+  "starting_time": {
+    "$date": "2024-03-15T09:00:00.000Z"
+  },
+  "finishing_time": {
+    "$date": "2024-03-15T12:00:00.000Z"
+  },
+  "schedule_state": "booked",
+  "display_name_location": "Av. Mariscal López 123, Asunción",
+  "lat": "-25.2637",
+  "lon": "-57.5759",
+  "cancelled_fixer": false,
+  "reprogram_reason": "",
+  "createdAt": {
+    "$date": "2024-03-14T15:45:00.000Z"
+  },
+  "updatedAt": {
+    "$date": "2024-03-14T15:45:00.000Z"
+  },
+  "__v": 0
+}
+```
+
+## Validation Rules
+
+<AccordionGroup>
+  <Accordion title="Date and Time">
+    - `starting_time` must be in the future
+    - `finishing_time` must be after `starting_time`
+    - `selected_date` should match the date portion of `starting_time`
+    - Time slots should be reasonable (typically 1-8 hours)
+  </Accordion>
+  
+  <Accordion title="Contact Information">
+    - `current_requester_phone` must be a valid phone number format
+    - `current_requester_name` is required and must not be empty
+  </Accordion>
+  
+  <Accordion title="Location">
+    - `display_name_location` is required
+    - `lat` and `lon` are optional but recommended for mapping features
+    - If provided, coordinates must be valid (lat: -90 to 90, lon: -180 to 180)
+  </Accordion>
+  
+  <Accordion title="Service Details">
+    - `appointment_type` must match available service categories
+    - `appointment_description` should be detailed enough for the fixer to understand the work
+  </Accordion>
+</AccordionGroup>
+
+## Business Logic
+
+### Availability Check
+
+Before creating an appointment, you should check if the fixer is available:
+
+```typescript
+// Get existing appointments for the fixer
+const existingAppointments = await getAppointmentsByFixerId(fixerId);
+
+// Check for conflicts
+const hasConflict = existingAppointments.some(apt => {
+  const aptStart = new Date(apt.starting_time.$date);
+  const aptEnd = new Date(apt.finishing_time.$date);
+  const newStart = new Date(starting_time);
+  const newEnd = new Date(finishing_time);
+  
+  return (
+    (newStart >= aptStart && newStart < aptEnd) ||
+    (newEnd > aptStart && newEnd <= aptEnd) ||
+    (newStart <= aptStart && newEnd >= aptEnd)
+  );
+});
+
+if (hasConflict) {
+  throw new Error('Fixer is not available at the requested time');
+}
+```
+
+### Notification Flow
+
+After creating an appointment:
+
+1. Send confirmation to the requester
+2. Notify the fixer of the new appointment
+3. Add to both users' calendars
+4. Send reminder notifications before the appointment
+
+## Error Responses
+
+### Validation Error (400)
+
+```json
+{
+  "success": false,
+  "error": "Validation failed",
+  "errors": {
+    "starting_time": ["Start time must be in the future"],
+    "current_requester_phone": ["Invalid phone number format"]
+  }
+}
+```
+
+### Conflict Error (409)
+
+```json
+{
+  "success": false,
+  "error": "Fixer is not available at the requested time"
+}
+```
+
+### Unauthorized (401)
+
+```json
+{
+  "success": false,
+  "error": "Unauthorized - Authentication required"
+}
+```
+
+## Related Endpoints
+
+- [Get Appointments](/api/appointments/get-appointments)
+- [Update Appointment](/api/appointments/update-appointment)
+- [Create Job Request](/api/jobs/create-job)

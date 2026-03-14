@@ -1,80 +1,264 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quick Start Guide"
+description: "Get started with Servineo in minutes - from account creation to your first job"
 ---
 
-## Get started in three steps
+## Welcome to Servineo
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
+This guide will help you get started with Servineo quickly, whether you're looking to find services or offer your professional skills.
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="I need a service" icon="user" href="#for-requesters">
+    Find and book professionals
+  </Card>
+  <Card title="I offer services" icon="wrench" href="#for-fixers">
+    Start accepting jobs
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## For Requesters
+
+Get started as a service requester in just a few steps.
+
+<Steps>
+  <Step title="Create Your Account">
+    Sign up using Google OAuth or email/password:
+
+    ```typescript
+    // Google OAuth authentication
+    import { useGoogleLogin } from '@react-oauth/google';
+
+    const login = useGoogleLogin({
+      onSuccess: async (tokenResponse) => {
+        // Handle successful authentication
+        console.log('Access Token:', tokenResponse.access_token);
+      },
+      onError: () => console.log('Login Failed')
+    });
+    ```
+
+    <Info>
+      Google OAuth provides the fastest signup experience. You can also register manually with email and password.
+    </Info>
+  </Step>
+
+  <Step title="Complete Your Profile">
+    Add your phone number and location to help fixers find you:
+
+    - **Phone Number**: Required for appointment confirmations
+    - **Location**: Helps match you with nearby service providers
+    - **Profile Photo**: Optional but recommended for trust
+
+    ```typescript
+    interface UserProfile {
+      telefono?: string;
+      ubicacion?: {
+        lat?: number;
+        lng?: number;
+        direccion?: string;
+        departamento?: string;
+        pais?: string;
+      };
+    }
+    ```
+  </Step>
+
+  <Step title="Find Services">
+    Browse or search for the service you need:
+
+    **Three Ways to Find Services:**
+    1. **Browse Categories**: Choose from 24+ service categories
+    2. **Advanced Search**: Use filters for location, price, and ratings
+    3. **Map View**: See service providers near you on an interactive map
+
+    ```typescript
+    // Search with filters
+    const { data: jobs } = useGetJobsWithFiltersQuery({
+      category: 'plumbing',
+      city: 'La Paz',
+      minRating: 4.0,
+      maxPrice: 500
+    });
+    ```
+  </Step>
+
+  <Step title="Book an Appointment">
+    Contact a fixer and schedule your service:
+
+    - Choose between virtual or in-person appointments
+    - Select date and time
+    - Provide job details and requirements
+    - Confirm location (for in-person services)
+
+    ```typescript
+    interface Appointment {
+      type: 'virtual' | 'presential';
+      scheduledDate: string;
+      meetingLink?: string; // For virtual appointments
+      location?: {
+        lat: number;
+        lng: number;
+        direccion: string;
+      };
+    }
+    ```
+  </Step>
+
+  <Step title="Complete & Review">
+    After service completion:
+    
+    1. **Pay**: Use wallet, QR code, or cash
+    2. **Rate**: Give a 1-3 star rating
+    3. **Review**: Share your experience
+
+    <Tip>
+      Good reviews help fixers build their reputation and help other requesters make informed decisions.
+    </Tip>
+  </Step>
+</Steps>
+
+<Card title="Next Steps" icon="arrow-right" href="/requesters/overview">
+  Learn more about requester features
+</Card>
+
+## For Fixers
+
+Start offering your services and accepting jobs.
+
+<Steps>
+  <Step title="Sign Up">
+    Create a requester account first, then convert it to a fixer profile:
+
+    ```typescript
+    const [convertToFixer] = useConvertToFixerMutation();
+    
+    await convertToFixer({
+      userId: user._id,
+      ci: 'your-id-number'
+    });
+    ```
+
+    <Note>
+      All fixers start as requesters and then upgrade their account. This allows you to both offer and request services.
+    </Note>
+  </Step>
+
+  <Step title="Build Your Profile">
+    Complete your fixer profile with essential information:
+
+    **Required Information:**
+    - Identity Document (CI)
+    - Work location and service area
+    - Services you offer (select from 24+ categories)
+    - Payment methods (cash, QR, credit card)
+    - Vehicle information (if applicable)
+
+    ```typescript
+    interface FixerProfile {
+      ci: string;
+      servicios: string[];
+      workLocation: {
+        lat: number;
+        lng: number;
+        direccion: string;
+      };
+      metodoPago: {
+        hasEfectivo?: boolean;
+        qr?: boolean;
+        tarjetaCredito?: boolean;
+      };
+      vehiculo?: {
+        hasVehiculo: boolean;
+        tipoVehiculo?: string;
+      };
+    }
+    ```
+  </Step>
+
+  <Step title="Create Job Offers">
+    List the services you provide:
+
+    - Add photos of your work
+    - Set competitive pricing
+    - Write detailed descriptions
+    - Highlight your expertise
+
+    <Tip>
+      Quality photos and detailed descriptions help attract more clients. Include before/after photos when possible.
+    </Tip>
+  </Step>
+
+  <Step title="Manage Your Calendar">
+    Set your availability and manage appointments:
+
+    - View scheduled appointments
+    - Accept or decline job requests
+    - Update your availability
+    - Manage multiple bookings
+
+    The calendar syncs across desktop and mobile views for easy access anywhere.
+  </Step>
+
+  <Step title="Accept Jobs & Get Paid">
+    Start working and earning:
+
+    1. **Receive Requests**: Get notified of new job requests
+    2. **Accept Jobs**: Review details and accept jobs that fit your schedule
+    3. **Complete Work**: Provide excellent service
+    4. **Get Paid**: Receive payment through your preferred method
+    5. **Build Reputation**: Earn ratings and reviews
+
+    <Card title="Payment Options" icon="wallet">
+      - Wallet: Instant digital payments
+      - QR Code: Quick mobile payments
+      - Cash: Traditional payment method
+      - Credit Card: Through Stripe integration
+    </Card>
+  </Step>
+</Steps>
+
+<Card title="Fixer Dashboard" icon="chart-line" href="/fixers/overview">
+  Explore your fixer dashboard and all available features
+</Card>
+
+## Technology Stack
+
+Servineo is built with modern technologies for the best experience:
+
+<CardGroup cols={3}>
+  <Card title="Next.js 15" icon="react">
+    React 19, App Router, Server Components
+  </Card>
+  <Card title="State Management" icon="database">
+    Redux Toolkit with RTK Query
+  </Card>
+  <Card title="Styling" icon="palette">
+    Tailwind CSS, Material-UI, Framer Motion
+  </Card>
+  <Card title="Maps" icon="map">
+    Leaflet.js with interactive markers
+  </Card>
+  <Card title="Payments" icon="credit-card">
+    Stripe integration for secure payments
+  </Card>
+  <Card title="i18n" icon="language">
+    English and Spanish with next-intl
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+<CardGroup cols={2}>
+  <Card title="Key Concepts" icon="book" href="/key-concepts">
+    Understand core platform concepts
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/introduction">
+    Integrate with the Servineo API
+  </Card>
+  <Card title="Feature Guides" icon="rocket" href="/features/authentication">
+    Explore platform features in depth
+  </Card>
+  <Card title="Admin Guide" icon="shield" href="/admin/dashboard">
+    Platform administration and management
+  </Card>
+</CardGroup>

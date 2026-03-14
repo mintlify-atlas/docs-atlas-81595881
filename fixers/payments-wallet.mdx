@@ -1,0 +1,435 @@
+---
+title: 'Payments & Wallet'
+description: 'Manage your earnings, payment methods, and fixer wallet'
+icon: 'wallet'
+---
+
+## Fixer Wallet Overview
+
+The Fixer Wallet is your central payment hub where you can view your balance, track earnings, and manage payment transactions.
+
+<Note>
+The wallet integrates with the backend payment system to provide real-time balance updates and transaction history.
+</Note>
+
+## Accessing Your Wallet
+
+Navigate to the Fixer Wallet at `/payment/FixerWallet`:
+
+```typescript
+// Location: src/app/[locale]/payment/FixerWallet/page.tsx:19-27
+export default function FixerWalletPage() {
+  return (
+    // Suspense pauses rendering while loading
+    <Suspense fallback={<LoadingFallback />}>
+      <WalletDashboardClient />
+    </Suspense>
+  );
+}
+```
+
+### Loading State
+
+```typescript
+// Location: src/app/[locale]/payment/FixerWallet/page.tsx:7-16
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="animate-spin text-blue-600 mx-auto mb-4" size={48} />
+        <p className="text-gray-600">Cargando Billetera...</p>
+      </div>
+    </div>
+  );
+}
+```
+
+## Wallet Dashboard
+
+The wallet dashboard displays your current balance and recent transactions:
+
+### Fetching Wallet Data
+
+```typescript
+// Location: src/Components/payment/WalletDashboardClient.tsx:35-47
+useEffect(() => {
+  // Read fixerId from URL
+  const fixerId = searchParams.get('fixerId');
+  if (fixerId) {
+    setReceivedFixerId(fixerId);
+    console.log("Fixer ID Recibido en Wallet:", fixerId);
+    fetchWalletData(fixerId); 
+  } else {
+    console.warn("No se recibió fixerId en la URL.");
+    setError("No se proporcionó un ID de Fixer.");
+    setLoading(false);
+  }
+}, [searchParams]);
+```
+
+### Backend Connection
+
+```typescript
+// Location: src/Components/payment/WalletDashboardClient.tsx:50-91
+const fetchWalletData = async (fixerId: string) => {
+  setLoading(true);
+  setError(null);
+  
+  // Use environment variable for backend URL
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  
+  try {
+    console.log(`📡 Conectando a: ${BACKEND_URL}/api/fixer/payment-center/${fixerId}`);
+    
+    const res = await fetch(`${BACKEND_URL}/api/fixer/payment-center/${fixerId}`);
+    
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `Error ${res.status}: No se pudo conectar al servidor`);
+    }
+    
+    const result = await res.json();
+    
+    if (result.success && result.data) {
+      // Set wallet balance
+      setWalletData({
+        balance: result.data.saldoActual,
+        currency: "BOB"
+      });
+      
+      // Load transactions
+      setTransactions(result.data.transactions?.slice(0, 3) || []);
+    } else {
+      throw new Error(result.error || 'No se pudieron cargar los datos.');
+    }
+    
+  } catch (err: unknown) {
+    console.error("Error fetching wallet data:", err);
+    setError(err.message || "Un error inesperado ocurrió.");
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+<Tip>
+The wallet uses the `NEXT_PUBLIC_BACKEND_URL` environment variable to connect to the payment backend, making it work seamlessly in both development and production environments.
+</Tip>
+
+## Wallet Interface
+
+### Balance Display
+
+```typescript
+// Location: src/Components/payment/WalletDashboardClient.tsx:136-154
+<div className="bg-blue-600 rounded-2xl p-6 text-white shadow-lg">
+  <div className="flex items-center gap-2 mb-2">
+    <Wallet size={20} />
+    <span className="text-sm opacity-90">Saldo Actual</span>
+  </div>
+  <div className="text-5xl font-bold mb-6">
+    Bs. {walletData?.balance?.toFixed(2) || '0.00'}
+  </div>
+  
+  <Link
+    href={`/payment/FixerWallet/recarga?fixerId=${receivedFixerId}`}
+    className="w-full block text-center bg-white text-blue-600 py-3 rounded-xl font-semibold"
+  >
+    Recargar Saldo
+  </Link>
+</div>
+```
+
+### Recent Transactions
+
+```typescript
+// Location: src/Components/payment/WalletDashboardClient.tsx:156-201
+<div className="pb-6">
+  <div className="flex items-center justify-between mb-4">
+    <h2 className="text-gray-600 font-semibold text-lg">Movimientos Recientes</h2>
+    
+    <Link
+      href={`/payment/historial?fixerId=${receivedFixerId}`}
+      className="text-blue-600 font-semibold"
+    >
+      Ver todo
+    </Link>
+  </div>
+  
+  <div className="space-y-3">
+    {transactions.length > 0 ? (
+      transactions.map((tx) => (
+        <div key={tx._id} className="bg-white rounded-xl p-4 shadow-sm flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+            tx.amount > 0 ? 'bg-green-100' : 'bg-red-100'
+          }`}>
+            {tx.amount > 0 ? (
+              <TrendingUp className="text-green-600" size={24} />
+            ) : (
+              <TrendingDown className="text-red-600" size={24} />
+            )}
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-gray-900">{tx.description}</p>
+            <p className="text-sm text-gray-500">
+              {new Date(tx.createdAt).toLocaleDateString('es-ES')}
+            </p>
+          </div>
+          <div className={`font-bold text-lg ${
+            tx.amount > 0 ? 'text-green-600' : 'text-red-600'
+          }`}>
+            {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+          </div>
+        </div>
+      ))
+    ) : (
+      <div className="bg-white rounded-xl p-4 shadow-sm text-center text-gray-500">
+        <p>No se encontraron movimientos recientes.</p>
+      </div>
+    )}
+  </div>
+</div>
+```
+
+## Transaction Types
+
+Transactions are displayed with visual indicators:
+
+```typescript
+// Location: src/Components/payment/WalletDashboardClient.tsx:172-180
+<div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+  tx.amount > 0 ? 'bg-green-100' : 'bg-red-100'
+}`}>
+  {tx.amount > 0 ? (
+    <TrendingUp className="text-green-600" size={24} />
+  ) : (
+    <TrendingDown className="text-red-600" size={24} />
+  )}
+</div>
+```
+
+- **Positive amounts** (earnings): Green background with upward trend icon
+- **Negative amounts** (withdrawals/fees): Red background with downward trend icon
+
+## Currency Formatting
+
+```typescript
+// Location: src/Components/payment/WalletDashboardClient.tsx:93-95
+const formatCurrency = (value: number) => {
+  return `Bs. ${Math.abs(value).toFixed(2)}`;
+};
+```
+
+All amounts are formatted in Bolivian Bolivianos (Bs.) with two decimal places.
+
+## Recharging Your Wallet
+
+Click the "Recargar Saldo" button to add funds:
+
+```typescript
+// Location: src/Components/payment/WalletDashboardClient.tsx:147-152
+<Link
+  href={`/payment/FixerWallet/recarga?fixerId=${receivedFixerId}`}
+  className="w-full block text-center bg-white text-blue-600 py-3 rounded-xl font-semibold"
+>
+  Recargar Saldo
+</Link>
+```
+
+This navigates to the recharge page where you can add funds using various payment methods.
+
+## Error Handling
+
+The wallet includes comprehensive error handling:
+
+```typescript
+// Location: src/Components/payment/WalletDashboardClient.tsx:107-123
+if (error) {
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="text-center bg-white p-8 rounded-lg shadow-md max-w-sm">
+        <AlertCircle className="text-red-500 mx-auto mb-4" size={48} />
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Error al cargar la Billetera</h2>
+        <p className="text-gray-600 mb-6 text-sm">{error}</p>
+        <button
+          onClick={() => router.push('/')}
+          className="mt-6 bg-blue-600 text-white font-semibold py-2 px-6 rounded-xl"
+        >
+          Volver al Inicio
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+## Payment Methods Setup
+
+During fixer registration, you configure which payment methods you accept:
+
+### Available Payment Methods
+
+```typescript
+// Location: src/Components/fixer/steps/Payment-step.tsx:19-23
+const PAYMENT_CONFIG: Record<PaymentMethod, { label: string; icon: React.ReactNode }> = {
+  cash: { label: 'Efectivo', icon: <Banknote className='h-4 w-4' /> },
+  qr: { label: 'QR', icon: <QrCode className='h-4 w-4' /> },
+  card: { label: 'Tarjeta', icon: <CreditCard className='h-4 w-4' /> },
+};
+```
+
+### Account Information
+
+If you accept QR or card payments, you must provide account details:
+
+```typescript
+// Location: src/Components/fixer/steps/Payment-step.tsx:33-48
+const needsAccount = payments.includes('qr') || payments.includes('card');
+
+const handleAccountChange = (value: string) => {
+  // Only allow numbers, max 34 characters (CBU/IBAN)
+  const numericOnly = value.replace(/\D/g, '').slice(0, 34);
+  onAccountInfoChange(numericOnly);
+};
+
+const getAccountType = () => {
+  const length = accountInfo.length;
+  if (length === 22) return 'CBU';
+  if (length === 24) return 'IBAN';
+  if (length > 0 && length < 22) return 'Número incompleto';
+  if (length > 24) return 'Número demasiado largo';
+  return '';
+};
+```
+
+<Note>
+Valid account numbers are:
+- **CBU**: 22 digits
+- **IBAN**: 24 digits
+</Note>
+
+## Viewing Full Transaction History
+
+Click "Ver todo" to navigate to the full transaction history:
+
+```typescript
+// Location: src/Components/payment/WalletDashboardClient.tsx:161-166
+<Link
+  href={`/payment/historial?fixerId=${receivedFixerId}`}
+  className="text-blue-600 font-semibold"
+>
+  Ver todo
+</Link>
+```
+
+This takes you to `/payment/historial` where you can:
+- View all transactions
+- Filter by date range
+- Export transaction records
+- See detailed transaction information
+
+## Data Interfaces
+
+### Wallet Data
+
+```typescript
+// Location: src/Components/payment/WalletDashboardClient.tsx:10-13
+interface WalletData {
+  balance: number;
+  currency: string;
+}
+```
+
+### Transaction Data
+
+```typescript
+// Location: src/Components/payment/WalletDashboardClient.tsx:15-22
+interface Transaction {
+  _id: string;
+  type: string;
+  amount: number;
+  description: string;
+  jobId?: string;
+  createdAt: string;
+}
+```
+
+## Payment Flow During Registration
+
+When registering as a fixer, payment methods are submitted as part of your profile:
+
+```typescript
+// Location: src/Components/fixer/Filter-eneable-wizard.tsx:231-237
+paymentMethods: (() => {
+  const methods: { type: string }[] = [];
+  if (data.metodoPago.hasEfectivo) methods.push({ type: 'efectivo' });
+  if (data.metodoPago.qr) methods.push({ type: 'qr' });
+  if (data.metodoPago.tarjetaCredito) methods.push({ type: 'tarjeta' });
+  return methods;
+})(),
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Monitor Your Balance" icon="eye">
+    Check your wallet regularly to track earnings and ensure timely withdrawals
+  </Card>
+  
+  <Card title="Verify Transactions" icon="check-circle">
+    Review transaction details to ensure all payments are accurate
+  </Card>
+  
+  <Card title="Keep Account Info Updated" icon="refresh-cw">
+    Ensure your payment account details are current for smooth transactions
+  </Card>
+  
+  <Card title="Track Job Payments" icon="file-text">
+    Cross-reference wallet transactions with completed jobs
+  </Card>
+</CardGroup>
+
+## Security Considerations
+
+<Warning>
+- Never share your fixer ID or wallet access with others
+- Verify the backend URL is using HTTPS in production
+- Report any suspicious transactions immediately
+- Keep your account information confidential
+</Warning>
+
+## Troubleshooting
+
+### Wallet Not Loading
+
+If the wallet fails to load:
+
+1. **Check fixerId**: Ensure you have a valid fixer ID in the URL
+2. **Backend Connection**: Verify the backend URL is accessible
+3. **Network Issues**: Check your internet connection
+4. **Error Messages**: Read error messages for specific issues
+
+### Missing Transactions
+
+If expected transactions don't appear:
+
+1. Refresh the page to reload data
+2. Check the full transaction history page
+3. Verify the job was marked as completed
+4. Contact support if the issue persists
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Job Offers" icon="briefcase" href="/fixers/managing-jobs">
+    Create offers to start earning
+  </Card>
+  
+  <Card title="Calendar" icon="calendar" href="/fixers/calendar-scheduling">
+    Manage your availability to accept more jobs
+  </Card>
+  
+  <Card title="Dashboard" icon="gauge" href="/fixers/overview">
+    Return to the fixer dashboard overview
+  </Card>
+</CardGroup>

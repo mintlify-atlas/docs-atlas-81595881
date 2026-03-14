@@ -1,0 +1,362 @@
+---
+title: 'Authentication System'
+description: 'Multi-provider OAuth authentication with Google, GitHub, and Discord integration'
+icon: 'shield-check'
+---
+
+## Overview
+
+Servineo provides a robust authentication system supporting multiple OAuth providers alongside traditional email/password authentication. The system is built with security and user experience in mind, offering passwordless login options and seamless provider integration.
+
+## Supported Authentication Methods
+
+<CardGroup cols={3}>
+  <Card title="Google OAuth" icon="google" color="#4285F4">
+    One-click authentication using Google accounts
+  </Card>
+  <Card title="GitHub OAuth" icon="github" color="#333">
+    Developer-friendly GitHub authentication
+  </Card>
+  <Card title="Discord OAuth" icon="discord" color="#5865F2">
+    Community-focused Discord integration
+  </Card>
+</CardGroup>
+
+## Google Authentication
+
+The Google OAuth integration uses the `@react-oauth/google` library for seamless authentication.
+
+### Implementation
+
+<CodeGroup>
+```tsx LoginGoogle.tsx
+'use client';
+
+import { useState } from 'react';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { api, ApiResponse } from '../../../app/redux/services/loginApi';
+
+interface GoogleLoginResponse {
+  token: string;
+  user: {
+    id: string | number;
+    name: string;
+    email: string;
+    picture?: string;
+  };
+  message?: string;
+}
+
+export default function LoginGoogle({ onMensajeChange }: LoginGoogleProps) {
+  const [loading, setLoading] = useState(false);
+
+  const handleSuccess = async (credentialResponse: CredentialResponse) => {
+    setLoading(true);
+
+    try {
+      const res: ApiResponse<GoogleLoginResponse> = await api.post('/login/google', {
+        credential: credentialResponse.credential,
+        token: credentialResponse.credential,
+        modo: 'login',
+      });
+
+      if (res.success && res.data) {
+        localStorage.setItem('servineo_token', res.data.token);
+        localStorage.setItem('servineo_user', JSON.stringify(res.data.user));
+        window.location.href = '/';
+      } else {
+        const mensajeError = res.message || res.error || 'Error al iniciar sesión';
+        onMensajeChange(mensajeError, 'error');
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        onMensajeChange(err.message, 'error');
+      } else {
+        onMensajeChange('No se pudo conectar con el servidor.', 'error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className='flex flex-col items-center gap-2'>
+      <GoogleLogin onSuccess={handleSuccess} onError={handleError} />
+      {loading && (
+        <p className='text-sm text-gray-500 mt-2 animate-pulse'>
+          Verificando credenciales...
+        </p>
+      )}
+    </div>
+  );
+}
+```
+
+```typescript loginApi.ts
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}`;
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+class ApiClient {
+  private baseUrl: string;
+  private timeout: number;
+
+  constructor(baseUrl: string, timeout = 10000) {
+    this.baseUrl = baseUrl;
+    this.timeout = timeout;
+  }
+
+  private async request<T>(url: string, options: RequestInit): Promise<ApiResponse<T>> {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), this.timeout);
+
+    try {
+      const response = await fetch(`${this.baseUrl}${url}`, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {}),
+        },
+      });
+
+      const data = await response.json();
+      return { success: response.ok, data, message: data.message };
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return { success: false, error: error.message };
+      }
+      return { success: false, error: 'Error desconocido' };
+    } finally {
+      clearTimeout(id);
+    }
+  }
+
+  post<T, B = unknown>(url: string, body: B) {
+    return this.request<T>(url, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+}
+
+export const api = new ApiClient(BASE_URL);
+```
+</CodeGroup>
+
+<Note>
+The Google OAuth flow stores the JWT token in `localStorage` as `servineo_token` and user data as `servineo_user`.
+</Note>
+
+## GitHub Authentication
+
+GitHub authentication uses a popup-based OAuth flow for better user experience.
+
+```tsx LoginGitHub.tsx
+'use client';
+
+import React from 'react';
+import { FaGithub } from 'react-icons/fa';
+
+const LoginGithub: React.FC<Props> = ({ onMensajeChange }) => {
+  const handleGithubClick = () => {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!baseUrl) {
+        onMensajeChange('Falta configurar NEXT_PUBLIC_API_URL para GitHub.');
+        return;
+      }
+
+      const stateObj = { mode: 'login-only' };
+      const state = encodeURIComponent(JSON.stringify(stateObj));
+      const authUrl = `${baseUrl}/auth/github?state=${state}`;
+
+      // Open in popup for window.opener.postMessage
+      window.open(authUrl, 'github_oauth', 'width=600,height=700,menubar=no,toolbar=no');
+    } catch (error) {
+      onMensajeChange('No se pudo iniciar el login con GitHub.');
+    }
+  };
+
+  return (
+    <button
+      type='button'
+      onClick={handleGithubClick}
+      className='inline-flex items-center justify-center gap-3
+                 bg-white border border-gray-300 rounded-xl
+                 px-4 py-3 text-base font-medium
+                 hover:bg-gray-100 transition shadow-sm'
+    >
+      <FaGithub className='text-xl' />
+      <span>Continuar con GitHub</span>
+    </button>
+  );
+};
+```
+
+## Discord Authentication
+
+Discord OAuth uses a redirect-based flow for authentication.
+
+```tsx LoginDiscord.tsx
+'use client';
+
+import React from 'react';
+import { FaDiscord } from 'react-icons/fa';
+
+const LoginDiscord: React.FC<Props> = ({ onMensajeChange }) => {
+  const handleDiscordClick = () => {
+    try {
+      const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
+      if (!clientId) {
+        onMensajeChange('Falta configurar NEXT_PUBLIC_DISCORD_CLIENT_ID.');
+        return;
+      }
+
+      const redirectUri = `${window.location.origin}/login?provider=discord`;
+      const scope = 'identify email';
+
+      const discordUrl =
+        `https://discord.com/api/oauth2/authorize` +
+        `?client_id=${encodeURIComponent(clientId)}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&response_type=code` +
+        `&scope=${encodeURIComponent(scope)}`;
+
+      window.location.href = discordUrl;
+    } catch (error) {
+      onMensajeChange('No se pudo iniciar el login con Discord.');
+    }
+  };
+
+  return (
+    <button
+      type='button'
+      onClick={handleDiscordClick}
+      className='inline-flex items-center justify-center gap-3
+                 bg-[#5865F2] text-white rounded-xl
+                 px-4 py-3 text-base font-medium
+                 hover:bg-[#4752C4] transition shadow-sm'
+    >
+      <FaDiscord className='text-xl' />
+      <span>Continuar con Discord</span>
+    </button>
+  );
+};
+```
+
+## Authentication Modal
+
+Servineo provides a modal for users to choose their preferred authentication method, including password recovery options.
+
+```tsx SeleccionMetodoModal.tsx
+'use client';
+
+interface Props {
+  showModal: boolean;
+  onClose: () => void;
+  onSelectForgotPassword: () => void;
+  onSelectPasswordless: () => void;
+}
+
+export default function OpcionesLoginModal({
+  showModal,
+  onClose,
+  onSelectForgotPassword,
+  onSelectPasswordless,
+}: Props) {
+  if (!showModal) return null;
+
+  return (
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm'>
+      <div className='bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4'>
+        <h2 className='text-2xl font-bold text-gray-800 mb-2'>Opciones de acceso</h2>
+        <p className='text-sm text-gray-600'>Elige cómo deseas recuperar tu acceso</p>
+        
+        {/* Forgot Password Option */}
+        <button
+          onClick={onSelectForgotPassword}
+          className='w-full flex items-center gap-4 p-5 rounded-xl border-2 
+                     border-gray-200 hover:border-primary hover:bg-primary/5'
+        >
+          <div className='w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center'>
+            <span className='text-2xl'>🔑</span>
+          </div>
+          <div className='flex-1 text-left'>
+            <h3 className='font-semibold text-gray-800'>¿Olvidaste tu contraseña?</h3>
+            <p className='text-sm text-gray-600'>Recupera tu contraseña por correo electrónico</p>
+          </div>
+        </button>
+
+        {/* Passwordless Login Option */}
+        <button
+          onClick={onSelectPasswordless}
+          className='w-full flex items-center gap-4 p-5 rounded-xl border-2 
+                     border-gray-200 hover:border-primary hover:bg-primary/5'
+        >
+          <div className='w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center'>
+            <span className='text-2xl'>🔐</span>
+          </div>
+          <div className='flex-1 text-left'>
+            <h3 className='font-semibold text-gray-800'>Ingresar sin contraseña</h3>
+            <p className='text-sm text-gray-600'>Usa Google Authenticator</p>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Multi-Provider Support" icon="users">
+    Supports Google, GitHub, and Discord OAuth providers for flexible authentication options.
+  </Card>
+  <Card title="Secure Token Storage" icon="lock">
+    JWT tokens stored securely in localStorage with automatic expiration handling.
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation">
+    Comprehensive error handling with user-friendly error messages.
+  </Card>
+  <Card title="Passwordless Options" icon="key">
+    Support for passwordless authentication using Google Authenticator.
+  </Card>
+</CardGroup>
+
+## Environment Variables
+
+Ensure these environment variables are configured:
+
+```bash .env.local
+# API Configuration
+NEXT_PUBLIC_API_URL=https://api.servineo.com
+
+# OAuth Provider IDs
+NEXT_PUBLIC_DISCORD_CLIENT_ID=your_discord_client_id
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
+NEXT_PUBLIC_GITHUB_CLIENT_ID=your_github_client_id
+```
+
+<Info>
+All OAuth callbacks are handled server-side to protect client secrets and enhance security.
+</Info>
+
+## Best Practices
+
+1. **Token Management**: Always validate tokens on the server-side before processing requests
+2. **Error Messages**: Provide clear, actionable error messages to users
+3. **Session Timeout**: Implement automatic logout after token expiration
+4. **Provider Selection**: Allow users to choose their preferred authentication method
+5. **Fallback Options**: Always provide email/password as a fallback authentication method
+
+## Related Documentation
+
+- [User Management](/admin/user-management)
+- [API Authentication](/api/authentication)

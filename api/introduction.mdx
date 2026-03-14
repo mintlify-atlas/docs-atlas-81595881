@@ -1,0 +1,162 @@
+---
+title: 'API Introduction'
+description: 'Getting started with the Servineo API'
+icon: 'book-open'
+---
+
+## Overview
+
+The Servineo API provides a RESTful interface to interact with the Servineo platform. This API allows you to manage users, jobs, appointments, payments, and more.
+
+## Base URL
+
+All API requests should be made to:
+
+```
+https://api.servineo.com/api
+```
+
+For local development:
+
+```
+http://localhost:8000/api
+```
+
+<Note>
+  The base URL is configured via the `NEXT_PUBLIC_API_URL` environment variable.
+</Note>
+
+## API Response Format
+
+All API responses follow a consistent format:
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    // Response data
+  },
+  "message": "Operation successful"
+}
+```
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "error": "Error message describing what went wrong",
+  "message": "Additional error details"
+}
+```
+
+## HTTP Status Codes
+
+The API uses standard HTTP status codes:
+
+| Status Code | Description |
+|-------------|-------------|
+| `200` | Success - Request completed successfully |
+| `201` | Created - Resource created successfully |
+| `400` | Bad Request - Invalid request parameters |
+| `401` | Unauthorized - Authentication required |
+| `403` | Forbidden - Insufficient permissions |
+| `404` | Not Found - Resource not found |
+| `500` | Internal Server Error - Something went wrong on the server |
+
+## Request Headers
+
+All requests should include the following headers:
+
+```http
+Content-Type: application/json
+```
+
+For authenticated requests:
+
+```http
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+```
+
+## Rate Limiting
+
+The API implements rate limiting to ensure fair usage:
+
+- Default timeout: 10 seconds per request
+- Requests are processed with automatic retry logic
+- Long-running operations may require polling
+
+## Data Types
+
+Common data types used throughout the API:
+
+### Location Object
+
+```typescript
+{
+  lat: number,
+  lng: number,
+  address?: string,
+  departamento?: string,
+  pais?: string
+}
+```
+
+### Date/Time Format
+
+Dates are returned in MongoDB date format:
+
+```json
+{
+  "$date": "2024-01-15T10:30:00.000Z"
+}
+```
+
+## Error Handling
+
+When an error occurs, the API will return an appropriate HTTP status code along with an error message:
+
+```json
+{
+  "success": false,
+  "error": "Resource not found"
+}
+```
+
+Common error scenarios:
+
+- **Network errors**: Connection timeout or network unavailable
+- **Validation errors**: Invalid input parameters
+- **Authorization errors**: Missing or invalid authentication token
+- **Not found errors**: Requested resource doesn't exist
+
+## Getting Started
+
+1. Review the [Authentication](/api/authentication) guide
+2. Explore endpoint documentation in the sidebar
+3. Try out API calls using the provided examples
+4. Check response schemas for each endpoint
+
+## SDK and Client Libraries
+
+The Servineo platform uses RTK Query for API integration:
+
+```typescript
+import { baseApi } from '@/app/redux/services/baseApi';
+
+// Base API client is configured with:
+// - Automatic request/response handling
+// - Tag-based cache invalidation
+// - TypeScript type safety
+```
+
+## Need Help?
+
+If you encounter any issues or have questions:
+
+- Check the specific endpoint documentation
+- Review the code examples
+- Contact support for assistance

@@ -1,0 +1,411 @@
+---
+title: 'Rating & Reviews'
+description: 'Learn how to rate fixers and leave helpful reviews'
+icon: 'star'
+---
+
+## Rating Overview
+
+After completing a service, you can rate your experience and leave a review. Your feedback helps other requesters make informed decisions and helps fixers improve their services.
+
+## Rating System
+
+Servineo uses a **1-3 star rating system** for job completion:
+
+<CardGroup cols={3}>
+  <Card title="1 Star" icon="star">
+    Poor service quality
+  </Card>
+  <Card title="2 Stars" icon="star">
+    Average service quality
+  </Card>
+  <Card title="3 Stars" icon="star">
+    Excellent service quality
+  </Card>
+</CardGroup>
+
+<Note>
+  The rating system uses 1-3 stars for completed jobs, while the search filter supports 1-5 stars with decimal precision for fixer overall ratings.
+</Note>
+
+## How to Submit a Rating
+
+<Steps>
+  <Step title="Complete the Service">
+    Finish your appointment and mark the job as completed
+  </Step>
+  <Step title="Access Rating Form">
+    You'll receive a notification to rate the service
+  </Step>
+  <Step title="Select Star Rating">
+    Choose 1, 2, or 3 stars based on your experience
+  </Step>
+  <Step title="Write a Review (Optional)">
+    Add detailed comments about the service
+  </Step>
+  <Step title="Submit Rating">
+    Confirm and submit your rating
+  </Step>
+</Steps>
+
+## Rating Data Structure
+
+Ratings are stored with the following information:
+
+```typescript
+interface FixerRating {
+  id: string;
+  requester: string;        // Your name or "Unknown"
+  score: 1 | 2 | 3;        // Star rating
+  comment: string;          // Your review text
+  createdAt: string;        // Submission date
+}
+
+type RatingResponse = {
+  _id: string;
+  title?: string;           // Job title
+  rating: 1 | 2 | 3;
+  comment?: string;
+  createdAt: string;
+};
+```
+
+Reference: `src/app/[locale]/fixer-ratings-details/[fixerId]/components.tsx:15`
+
+## Viewing Ratings
+
+### Your Submitted Ratings
+
+View all ratings you've given to fixers in your profile section.
+
+### Fixer Rating Details
+
+When viewing a fixer's profile, you can see all their ratings:
+
+```typescript
+function useFixerRatings(fixerId: string, pollInterval: number = 5000) {
+  const [ratings, setRatings] = useState<FixerRating[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const url = fixerId ? apiUrl(`/api/ratings.details/${fixerId}`) : null;
+  
+  const load = async () => {
+    const data = await jsonFetcher<RatingResponse[]>(url);
+    const mapped = data.map((d) => ({
+      id: d._id,
+      requester: d.title || 'Unknown',
+      score: d.rating as 1 | 2 | 3,
+      comment: d.comment || '',
+      createdAt: d.createdAt,
+    }));
+    setRatings(mapped);
+  };
+  
+  return { ratings, isLoading, error, refresh: load };
+}
+```
+
+Reference: `src/app/[locale]/fixer-ratings-details/[fixerId]/components.tsx:7`
+
+<Tip>
+  Rating data is polled every 5 seconds to show the most up-to-date reviews.
+</Tip>
+
+## Star Rating Component
+
+The visual star display:
+
+```tsx
+export function StarRating({
+  value,
+  size = 18,
+  srLabel,
+}: {
+  value: 1 | 2 | 3;
+  size?: number;
+  srLabel?: string;
+}) {
+  return (
+    <div className="inline-flex gap-1" aria-label={srLabel ?? `${value} of 3 stars`}>
+      {Array.from({ length: 3 }).map((_, i) => {
+        const filled = i < value;
+        return (
+          <svg
+            key={i}
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            style={
+              filled
+                ? { fill: 'var(--highlight)' }
+                : { fill: 'transparent', stroke: 'var(--highlight)' }
+            }
+          >
+            <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+        );
+      })}
+    </div>
+  );
+}
+```
+
+Reference: `src/app/[locale]/fixer-ratings-details/[fixerId]/components.tsx:59`
+
+## Rating Display
+
+### Rating List Component
+
+Ratings are displayed in a list format:
+
+```tsx
+export function RatingDetailsList({ ratings, error }: { 
+  ratings: FixerRating[]; 
+  error?: string 
+}) {
+  const [expandedCommentId, setExpandedCommentId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Comment length limits
+  const commentLengthLimit = isMobile ? 100 : 200;
+  
+  // Sort by most recent
+  const ordered = [...ratings].sort(
+    (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)
+  );
+  
+  return (
+    <ul className="flex flex-col gap-4">
+      {ordered.map((r) => (
+        <li key={r.id} className="flex items-start gap-4 p-4 rounded-xl">
+          <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center">
+            <span className="text-xs">👤</span>
+          </div>
+          
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <p className="font-medium">{r.requester}</p>
+              <StarRating value={r.score} />
+            </div>
+            
+            <p className="text-xs text-gray-500">
+              {new Date(r.createdAt).toLocaleDateString()}
+            </p>
+            
+            <p className="text-sm mt-1 leading-6">
+              {r.comment}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+Reference: `src/app/[locale]/fixer-ratings-details/[fixerId]/components.tsx:94`
+
+### Mobile vs Desktop Display
+
+The rating display adapts to screen size:
+
+- **Mobile**: Comments truncated at 100 characters with "See more" button
+- **Desktop**: Comments truncated at 200 characters with expansion option
+
+```typescript
+const commentLengthLimit = isMobile ? 100 : 200;
+
+{isLongComment && (
+  <button
+    className="mt-2 text-xs sm:hidden"
+    onClick={() => toggleComment(r.id)}
+  >
+    {expandedCommentId === r.id ? 'See less' : 'See more'}
+  </button>
+)}
+```
+
+Reference: `src/app/[locale]/fixer-ratings-details/[fixerId]/components.tsx:105`
+
+## Writing Effective Reviews
+
+### What to Include
+
+<Accordion title="Service Quality">
+  - Was the work completed as described?
+  - Did the fixer arrive on time?
+  - Quality of workmanship
+  - Professionalism and communication
+</Accordion>
+
+<Accordion title="Specific Details">
+  - What service was performed
+  - Any challenges that arose
+  - How the fixer handled issues
+  - Would you hire them again?
+</Accordion>
+
+<Accordion title="Helpful Tips">
+  - Be honest but respectful
+  - Mention specific positives and negatives
+  - Keep it relevant to the service
+  - Avoid personal attacks
+</Accordion>
+
+### Review Guidelines
+
+<CardGroup cols={2}>
+  <Card title="Be Specific" icon="magnifying-glass">
+    Provide concrete examples rather than vague statements
+  </Card>
+  <Card title="Be Fair" icon="balance-scale">
+    Consider both positives and negatives objectively
+  </Card>
+  <Card title="Be Honest" icon="handshake">
+    Share your genuine experience to help others
+  </Card>
+  <Card title="Be Respectful" icon="heart">
+    Maintain a professional and courteous tone
+  </Card>
+</CardGroup>
+
+## Rating Integration with Jobs
+
+Ratings are linked to completed job requests:
+
+```typescript
+export interface JobRequest {
+  _id: string;
+  title: string;
+  description: string;
+  price: number;
+  requesterId: string;
+  fixerId?: string;
+  status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled' | 'paid';
+  rating?: number;      // Your submitted rating
+  comment?: string;     // Your review text
+  createdAt: string;
+  updatedAt?: string;
+}
+```
+
+Reference: `src/types/job-request.ts:49`
+
+<Note>
+  You can only rate a fixer after the job status is marked as "completed" or "paid".
+</Note>
+
+## API Reference
+
+### Fetch Fixer Ratings
+
+```typescript
+import { apiUrl } from '@/config/api';
+import { jsonFetcher } from './utils';
+
+const url = apiUrl(`/api/ratings.details/${fixerId}`);
+const ratings = await jsonFetcher<RatingResponse[]>(url);
+```
+
+### Rating Response Format
+
+```json
+[
+  {
+    "_id": "507f1f77bcf86cd799439011",
+    "title": "Plumbing Repair",
+    "rating": 3,
+    "comment": "Excellent work, very professional and on time.",
+    "createdAt": "2026-03-14T10:30:00.000Z"
+  }
+]
+```
+
+## Empty States
+
+### No Ratings Yet
+
+```tsx
+if (!ratings?.length) {
+  return (
+    <div className="p-6 text-sm border rounded-lg">
+      Este FIXER no tiene calificaciones registradas.
+    </div>
+  );
+}
+```
+
+Reference: `src/app/[locale]/fixer-ratings-details/[fixerId]/components.tsx:116`
+
+### Error Loading Ratings
+
+```tsx
+if (error) {
+  return (
+    <div className="p-4 rounded-lg text-sm error-box">
+      ⚠️ Ocurrió un problema al cargar las calificaciones. Inténtalo nuevamente.
+    </div>
+  );
+}
+```
+
+Reference: `src/app/[locale]/fixer-ratings-details/[fixerId]/components.tsx:108`
+
+## Rating Statistics
+
+Fixers' overall ratings are calculated from all submitted reviews:
+
+- **Average Rating**: Mean of all ratings (displayed as 1.0 - 5.0)
+- **Total Reviews**: Count of all submitted ratings
+- **Recent Ratings**: Latest reviews shown first
+- **Rating Distribution**: Breakdown by star count
+
+## Best Practices
+
+<Steps>
+  <Step title="Rate Promptly">
+    Submit your rating within 48 hours of service completion while details are fresh
+  </Step>
+  <Step title="Be Constructive">
+    If giving a low rating, explain what could be improved
+  </Step>
+  <Step title="Acknowledge Good Work">
+    If the service exceeded expectations, mention specific highlights
+  </Step>
+  <Step title="Stay Professional">
+    Keep your review focused on the service quality, not personal matters
+  </Step>
+</Steps>
+
+## Impact on Fixers
+
+Your ratings directly affect:
+
+- **Search Ranking**: Higher-rated fixers appear first in search results
+- **Profile Visibility**: Star ratings displayed prominently on profiles
+- **Trust Building**: Reviews help build credibility
+- **Service Improvement**: Feedback helps fixers enhance their services
+
+<Warning>
+  Ratings cannot be edited or deleted after submission. Please review carefully before submitting.
+</Warning>
+
+## Dispute Resolution
+
+If you believe a rating was unfair or submitted in error:
+
+1. Contact Servineo support
+2. Provide evidence of the issue
+3. Support team will review the case
+4. Resolution typically takes 3-5 business days
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Overview" icon="house" href="/requesters/overview">
+    Return to requester overview
+  </Card>
+  <Card title="Finding Services" icon="search" href="/requesters/finding-services">
+    Search for more services
+  </Card>
+</CardGroup>
